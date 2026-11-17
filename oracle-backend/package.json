@@ -1,0 +1,20 @@
+{
+  "name": "hypemotiv-oracle-backend",
+  "version": "1.0.0",
+  "description": "HypeMotiv Oracle backend REST API - syncs local iOS/Android data to Oracle Database",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "install-oracledb": "npm install oracledb"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "oracledb": "^6.15.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

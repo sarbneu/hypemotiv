@@ -1,0 +1,44 @@
+name: hypemotiv
+description: "HypeMotiv - Meme audio alarm, daily habit checklist and streak tracker. An engaging alternative to the boring alarm apps."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Local database - SQLite/Hive for lightweight on-device storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # Text-to-Speech
+  flutter_tts: ^4.2.3
+
+  # Audio playback
+  speakers: ^4.0.1
+
+  # File system access
+  path_provider: ^2.1.5
+  file_picker: ^8.0.0+1
+
+  # Simple settings storage
+  shared_preferences: ^2.2.0
+
+  # HTTP client for Oracle REST API sync
+  http: ^1.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
