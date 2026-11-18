@@ -12,7 +12,7 @@ Update this file as each phase of `PROJECT_RUN_PLAN.md` completes.
 | 5 | First-run setup | Setup | Choose wake style → Finish setup → dashboard | ✅ (before login rewrite) |
 | 6 | Add alarm | Alarms | Time + name → Save → appears in list | ✅ (notification fires on device ⏳) |
 | 7 | Local notification | Alarms | Schedule 2 minutes ahead → notification appears | ✅ POST_NOTIFICATIONS granted on emulator; scheduling wired (tap test ⏳) |
-| 8 | Play alarm sound | Alarms / More | Tap Play → audio starts | ✅ proxy decoded in browser |
+| 8 | Play alarm sound | Alarms / More | Tap Play → audio starts | ✅ Android AudioTrack frames delivered; web uses CORS proxy + byte source (no console errors) |
 | 9 | Camera proof check-in | Alarms / Mission | Take photo → uploaded/saved | ⏳ device camera tap test |
 | 10 | 20-jack snooze | Mission | 20 taps → 5-minute alarm scheduled | ⏳ device notification |
 | 11 | myinstants sound search | Bound Lab | Search → results → play | ✅ live scrape `"source":"live"` in backend smoke |
@@ -38,3 +38,5 @@ Run `bash oracle-backend/scripts/smoke.sh` with the backend running for backend 
 A ✅ SDK repaired + tests pass + ANDROID_HOME + scripts. B ✅ .env + smoke script 8/8 green + live scrape + yt-dlp. C ✅ builds. D ✅ logic tested. E 🔄 Android emulator booted, APK installed, app renders; device taps outstanding. F ⏳ deferred (no Oracle/VPS credentials). G ✅ report addendum. H 🔄 final QA.
 
 Device fix recorded: `TTSService.init()` now times out per call so a device without a TTS engine cannot block `runApp()`.
+
+Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/proxy` and uses `setSourceBytes`, avoiding crossOrigin=anonymous entirely. Native playback uses direct URLs. A "Play test sound" button on sign-in lets you verify audio before creating an account.

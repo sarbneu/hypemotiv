@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
@@ -301,6 +302,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () async {
+                      await AudioService().play(AudioService.fallbackSoundUrl);
+                      _toast('Test sound played');
+                    },
+                    icon: const Icon(Icons.volume_up, size: 16),
+                    label: const MicroText(
+                      'Play test sound',
+                      color: Color(0xFF3D5AFE),
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[

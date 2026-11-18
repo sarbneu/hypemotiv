@@ -7,6 +7,7 @@ library;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:hypemotiv/services/hype_api.dart';
+import 'package:http/http.dart' as http;
 
 class AudioService {
   static final AudioService _instance = AudioService._internal();
@@ -33,7 +34,18 @@ class AudioService {
       await _audioPlayer.setReleaseMode(
         loop ? ReleaseMode.loop : ReleaseMode.release,
       );
-      await _audioPlayer.setSourceUrl(playable);
+      // On web, audioplayers creates an HTMLAudioElement with
+      // crossOrigin=anonymous. Feeding bytes avoids that CORS path entirely.
+      if (kIsWeb) {
+        final http.Response response =
+            await http.get(Uri.parse(playable)).timeout(const Duration(seconds: 15));
+        if (response.statusCode != 200) {
+          throw StateError('Audio HTTP ${response.statusCode}');
+        }
+        await _audioPlayer.setSourceBytes(response.bodyBytes);
+      } else {
+        await _audioPlayer.setSourceUrl(playable);
+      }
       await _audioPlayer.resume();
     } catch (e) {
       debugPrint('AudioService: could not play $source ($e); using fallback');
@@ -44,7 +56,14 @@ class AudioService {
   Future<void> _playFallback() async {
     try {
       await _audioPlayer.stop();
-      await _audioPlayer.setSourceUrl(HypeApi.playableUrl(fallbackSoundUrl));
+      final String url = HypeApi.playableUrl(fallbackSoundUrl);
+      if (kIsWeb) {
+        final http.Response response =
+            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
+        await _audioPlayer.setSourceBytes(response.bodyBytes);
+      } else {
+        await _audioPlayer.setSourceUrl(url);
+      }
       await _audioPlayer.resume();
     } catch (e) {
       debugPrint('AudioService: fallback also failed: $e');
