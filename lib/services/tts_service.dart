@@ -4,6 +4,28 @@ import 'package:flutter_tts/flutter_tts.dart';
 class TTSService {
   final FlutterTts _flutterTts = FlutterTts();
 
+  // Voice characters: just different speed and pitch for the same message.
+  static const List<String> characters = <String>[
+    'Calm',
+    'Cheerful',
+    'Firm',
+    'Radio',
+  ];
+
+  static const Map<String, double> _rates = <String, double>{
+    'Calm': 0.45,
+    'Cheerful': 0.70,
+    'Firm': 0.55,
+    'Radio': 0.90,
+  };
+
+  static const Map<String, double> _pitches = <String, double>{
+    'Calm': 1.0,
+    'Cheerful': 1.25,
+    'Firm': 0.85,
+    'Radio': 0.7,
+  };
+
   /// Initialize the TTS engine without ever blocking app startup.
   /// Some Android images have no TTS engine installed; in that case the
   /// calls can hang, so each one is bounded and failures are ignored.
@@ -23,7 +45,35 @@ class TTSService {
 
   /// Speak a quote text aloud.
   Future<void> speak(String text, {double rate = 0.5, double pitch = 1.0}) async {
+    await _safe(() => _flutterTts.setSpeechRate(rate));
+    await _safe(() => _flutterTts.setPitch(pitch));
     await _safe(() => _flutterTts.speak(text));
+  }
+
+  /// Speak with one of the preset voice characters.
+  Future<void> speakWithCharacter(String text, String character) async {
+    final String name = characters.contains(character) ? character : 'Calm';
+    await speak(
+      text,
+      rate: _rates[name] ?? 0.5,
+      pitch: _pitches[name] ?? 1.0,
+    );
+  }
+
+  /// Voices installed on the device, when the engine exposes them.
+  Future<List<String>> getVoices() async {
+    try {
+      final dynamic result = await _flutterTts.getVoices.timeout(
+        const Duration(seconds: 3),
+      );
+      if (result is! List) return const <String>[];
+      return result
+          .map((dynamic v) => v is Map ? (v['name'] ?? '').toString() : '')
+          .where((String name) => name.isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const <String>[];
+    }
   }
 
   /// Stop any current speech.

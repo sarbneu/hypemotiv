@@ -77,6 +77,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _roastController = TextEditingController();
   final TTSService _tts = TTSService();
+  String _voiceCharacter = 'Calm';
 
   List<Sound> _sounds = _featuredSounds;
   String? _ripUrl;
@@ -164,7 +165,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
       return;
     }
     try {
-      await _tts.speak(text.trim());
+      await _tts.speakWithCharacter(text.trim(), _voiceCharacter);
     } catch (_) {
       // TTS failures never reach the UI.
     }
@@ -482,6 +483,25 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                           decoration: const InputDecoration(
                             hintText: 'Write your message...',
                           ),
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          initialValue: _voiceCharacter,
+                          decoration: const InputDecoration(
+                            labelText: 'Voice character',
+                          ),
+                          items: <DropdownMenuItem<String>>[
+                            for (final String name in TTSService.characters)
+                              DropdownMenuItem<String>(
+                                value: name,
+                                child: Text(name),
+                              ),
+                          ],
+                          onChanged: (String? value) {
+                            if (value != null) {
+                              setState(() => _voiceCharacter = value);
+                            }
+                          },
                         ),
                         const SizedBox(height: 10),
                         NeonButton(

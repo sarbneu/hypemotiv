@@ -11,7 +11,17 @@ import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
+import 'package:hypemotiv/services/tts_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
+
+const List<Map<String, String>> kAlarmSounds = <Map<String, String>>[
+  {'name': 'Bruh', 'url': 'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3'},
+  {'name': 'Airhorn', 'url': 'https://www.myinstants.com/media/sounds/airhorn.mp3'},
+  {'name': 'Roblox OOF', 'url': 'https://www.myinstants.com/media/sounds/roblox-oof.mp3'},
+  {'name': 'Emotional Damage', 'url': 'https://www.myinstants.com/media/sounds/emotional-damage.mp3'},
+  {'name': 'FBI Open Up', 'url': 'https://www.myinstants.com/media/sounds/fbi-open-up.mp3'},
+  {'name': 'Bell', 'url': 'https://www.myinstants.com/media/sounds/bell.mp3'},
+];
 
 class ArenaScreen extends StatefulWidget {
   const ArenaScreen({super.key});
@@ -26,12 +36,16 @@ class _Protocol {
     required this.title,
     required this.subtitle,
     this.enabled = true,
+    this.soundName = 'Bruh',
+    this.voice = 'Calm',
   });
 
   final String time;
   final String title;
   final String subtitle;
   final bool enabled;
+  final String soundName;
+  final String voice;
 
   _Protocol copyWith({bool? enabled}) {
     return _Protocol(
@@ -39,6 +53,8 @@ class _Protocol {
       title: title,
       subtitle: subtitle,
       enabled: enabled ?? this.enabled,
+      soundName: soundName,
+      voice: voice,
     );
   }
 }
@@ -77,12 +93,14 @@ class _ArenaScreenState extends State<ArenaScreen> {
     final List<String> stored = prefs.getStringList(_alarmsKey) ?? const <String>[];
     final List<_Protocol> restored = stored
         .map((String line) => line.split('|'))
-        .where((List<String> parts) => parts.length == 3)
+        .where((List<String> parts) => parts.length >= 3)
         .map(
           (List<String> parts) => _Protocol(
             time: parts[0],
             title: parts[1],
             subtitle: parts[2],
+            soundName: parts.length > 3 ? parts[3] : 'Bruh',
+            voice: parts.length > 4 ? parts[4] : 'Calm',
           ),
         )
         .toList();
@@ -132,7 +150,9 @@ class _ArenaScreenState extends State<ArenaScreen> {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final List<String> stored =
         List<String>.from(prefs.getStringList(_alarmsKey) ?? const <String>[]);
-    stored.add('${created.time}|${created.title}|${created.subtitle}');
+    stored.add(
+      '${created.time}|${created.title}|${created.subtitle}|${created.soundName}|${created.voice}',
+    );
     await prefs.setStringList(_alarmsKey, stored);
 
     final DateTime? scheduled = _parseClock(created.time);
@@ -468,6 +488,8 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
   final TextEditingController _subtitleController = TextEditingController(
     text: 'Morning routine',
   );
+  int _soundIndex = 0;
+  int _voiceIndex = 0;
 
   @override
   void dispose() {
@@ -507,6 +529,67 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
             controller: _subtitleController,
             decoration: const InputDecoration(labelText: 'Note'),
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  initialValue: _soundIndex,
+                  decoration: const InputDecoration(labelText: 'Alarm sound'),
+                  items: <DropdownMenuItem<int>>[
+                    for (int i = 0; i < kAlarmSounds.length; i++)
+                      DropdownMenuItem<int>(
+                        value: i,
+                        child: Text(kAlarmSounds[i]['name'] ?? 'Sound'),
+                      ),
+                  ],
+                  onChanged: (int? value) {
+                    if (value != null) setState(() => _soundIndex = value);
+                  },
+                ),
+              ),
+              IconButton(
+                tooltip: 'Preview sound',
+                icon: const Icon(Icons.play_arrow),
+                onPressed: () {
+                  AudioService().play(
+                    kAlarmSounds[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  initialValue: _voiceIndex,
+                  decoration: const InputDecoration(labelText: 'Wake-up voice'),
+                  items: <DropdownMenuItem<int>>[
+                    for (int i = 0; i < TTSService.characters.length; i++)
+                      DropdownMenuItem<int>(
+                        value: i,
+                        child: Text(TTSService.characters[i]),
+                      ),
+                  ],
+                  onChanged: (int? value) {
+                    if (value != null) setState(() => _voiceIndex = value);
+                  },
+                ),
+              ),
+              IconButton(
+                tooltip: 'Preview voice',
+                icon: const Icon(Icons.record_voice_over),
+                onPressed: () {
+                  TTSService().speakWithCharacter(
+                    'Time to wake up',
+                    TTSService.characters[_voiceIndex],
+                  );
+                },
+              ),
+            ],
+          ),
         ],
       ),
       actions: <Widget>[
@@ -525,6 +608,8 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
                     : _timeController.text.trim(),
                 title: title,
                 subtitle: _subtitleController.text.trim(),
+                soundName: kAlarmSounds[_soundIndex]['name'] ?? 'Bruh',
+                voice: TTSService.characters[_voiceIndex],
               ),
             );
           },
