@@ -656,8 +656,63 @@ app.get('/api/sounds/proxy', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: myinstants.com live sound search
+// myinstants.com live sound search
+//
+// Current markup (verified 2026-11-18) is `<div class="instant">` containing
+//   <button class="small-button" onclick="play('/media/sounds/x.mp3', ...)">
+//   <a class="instant-link">Sound name</a>
+// Individual endpoints intermittently return 404, so we try several candidate
+// URLs in order. The bundled fallback is used only if every endpoint fails.
 // ---------------------------------------------------------------------------
+function parseInstantsHtml(html, category) {
+  const $ = cheerio.load(html);
+  const seen = new Set();
+  const out = [];
+  const add = (audioPath, name, imgSrc) => {
+    if (!audioPath || !/\.mp3(\?|$)/i.test(audioPath)) return;
+    const cleanPath = audioPath.split(/[?#]/)[0];
+    if (seen.has(cleanPath)) return;
+    seen.add(cleanPath);
+    let label = String(name || '').replace(/\s+/g, ' ').trim();
+    if (!label) label = path.basename(cleanPath, '.mp3').replace(/[-_]+/g, ' ').trim() || 'Sound';
+    out.push({
+      id: cleanPath,
+      name: label,
+      url: new URL(cleanPath, MYINSTANTS).toString(),
+      category: category || 'trending',
+      imageUrl: imgSrc ? new URL(imgSrc, MYINSTANTS).toString() : `${MYINSTANTS}/favicon.ico`,
+    });
+  };
+
+  // Primary: the current `<div class="instant">` result cards.
+  $('div.instant').each((_, el) => {
+    const node = $(el);
+    const button = node.find('button.small-button').first();
+    const onclick = button.attr('onclick') || '';
+    const match = onclick.match(/play\(\s*['"]([^'"]+\.mp3)['"]/i) ||
+      (button.attr('data-url') || '').match(/(.+\.mp3)/i);
+    if (!match) return;
+    const name = node.find('a.instant-link').first().text() ||
+      (button.attr('title') || '').replace(/^Play\s+/i, '').replace(/\s+sound$/i, '');
+    const img = node.find('img.instant-image, img.instant-thumbnail, img.instant-image-container img').first().attr('src');
+    add(match[1], name, img);
+  });
+
+  // Secondary: any playable MP3 referenced elsewhere if the cards changed.
+  if (out.length === 0) {
+    $('[onclick]').each((_, el) => {
+      const m = ($(el).attr('onclick') || '').match(/play\(\s*['"]([^'"]+\.mp3)['"]/i);
+      if (m) add(m[1], $(el).attr('title') || '', null);
+    });
+    if (out.length === 0) {
+      $('a[href$=".mp3"], source[src$=".mp3"]').each((_, el) => {
+        add($(el).attr('href') || $(el).attr('src'), $(el).text() || $(el).attr('title') || '', null);
+      });
+    }
+  }
+  return out;
+}
+
 app.get('/api/sounds', async (req, res) => {
   res.set('Cache-Control', 'public, max-age=300');
   const q = String(req.query.q || '').trim().slice(0, 80);
@@ -666,51 +721,38 @@ app.get('/api/sounds', async (req, res) => {
 
   let sounds = [];
   let source = 'bundled';
+  const enc = encodeURIComponent(q);
+  // `/en/` is a dead URL (404). The homepage and these alternates are live.
+  const candidates = q
+    ? [`${MYINSTANTS}/en/search/?name=${enc}`,
+       `${MYINSTANTS}/search/?name=${enc}`,
+       `${MYINSTANTS}/index/us/?name=${enc}`]
+    : [`${MYINSTANTS}/`, `${MYINSTANTS}/en/index/np/`, `${MYINSTANTS}/index/us/`];
 
-  try {
-    const url = q
-      ? `${MYINSTANTS}/en/search/?name=${encodeURIComponent(q)}`
-      : `${MYINSTANTS}/en/`;
-    const response = await fetch(url, {
-      headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'en-US,en;q=0.9' },
-      signal: AbortSignal.timeout(9000),
-      redirect: 'follow',
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    const seen = new Set();
-
-    $('div.instant').each((_, el) => {
-      const node = $(el);
-      const onclick = node.find('button.small-button').attr('onclick') || '';
-      const match = onclick.match(/play\(\s*['"]([^'"]+\.mp3)['"]/i);
-      if (!match) return;
-      const audioPath = match[1];
-      if (seen.has(audioPath)) return;
-      seen.add(audioPath);
-
-      let name = (node.find('a.instant-link').first().text() || '').trim();
-      if (!name) {
-        name = (node.find('button.small-button').attr('title') || 'Play sound')
-          .replace(/^Play\s+/i, '').replace(/\s+sound$/i, '').trim() || 'Sound';
-      }
-      const img = node.find('img.instant-image, img.instant-thumbnail').first().attr('src');
-      sounds.push({
-        id: audioPath,
-        name,
-        url: new URL(audioPath, MYINSTANTS).toString(),
-        category: q || 'trending',
-        imageUrl: img ? new URL(img, MYINSTANTS).toString() : `${MYINSTANTS}/favicon.ico`,
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'en-US,en;q=0.9' },
+        signal: AbortSignal.timeout(9000),
+        redirect: 'follow',
       });
-    });
-    if (sounds.length > 0) source = 'live';
-  } catch (err) {
-    console.warn('[sounds] live scrape unavailable:', err.message);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const found = parseInstantsHtml(await response.text(), q || 'trending');
+      if (found.length > 0) {
+        sounds = found;
+        source = 'live';
+        break;
+      }
+    } catch (err) {
+      console.warn('[sounds] scrape candidate failed:', url, '->', err.message);
+    }
   }
 
   if (sounds.length === 0) {
-    sounds = BUNDLED_SOUNDS.filter((s) => !q || s.name.toLowerCase().includes(q.toLowerCase()));
+    console.warn('[sounds] all live scrape endpoints unavailable; using bundled fallback');
+    sounds = BUNDLED_SOUNDS.filter((s) => !q ||
+      s.name.toLowerCase().includes(q.toLowerCase()) ||
+      s.url.toLowerCase().includes(q.toLowerCase()));
     if (sounds.length === 0) sounds = [...BUNDLED_SOUNDS];
   }
 

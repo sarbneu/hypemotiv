@@ -1,7 +1,8 @@
-/// Screen 01 — sign-in gate.
+/// Sign-in gate with a real on-device account (create / sign in / reset).
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,11 +15,30 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _handleController = TextEditingController(
-    text: 'runner@hypemotiv.app',
-  );
+  final TextEditingController _handleController = TextEditingController();
   final TextEditingController _keyController = TextEditingController();
-  bool _streakLock = true;
+  bool _registered = false;
+  bool _registerMode = true;
+  bool _busy = false;
+  bool _remember = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final AuthService auth = AuthService();
+    final bool registered = await auth.isRegistered();
+    final String? user = await auth.savedUser();
+    if (!mounted) return;
+    setState(() {
+      _registered = registered;
+      _registerMode = !registered;
+      if (user != null) _handleController.text = user;
+    });
+  }
 
   @override
   void dispose() {
@@ -28,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _toast(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
@@ -35,6 +56,87 @@ class _LoginScreenState extends State<LoginScreen> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    final String user = _handleController.text.trim().toLowerCase();
+    final String pass = _keyController.text;
+    if (!user.contains('@') || user.length < 5) {
+      _toast('Enter a valid email address');
+      return;
+    }
+    if (pass.length < 4) {
+      _toast('Passcode must be at least 4 characters');
+      return;
+    }
+
+    setState(() => _busy = true);
+    final AuthService auth = AuthService();
+    bool ok;
+    if (_registerMode) {
+      await auth.register(user, pass);
+      ok = true;
+    } else {
+      ok = await auth.login(user, pass);
+    }
+    if (!_remember) await auth.signOut();
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    if (!ok) {
+      _toast('Incorrect passcode');
+      return;
+    }
+    _toast(_registerMode ? 'Account created' : 'Signed in');
+    widget.onEnter?.call();
+  }
+
+  void _showInfo(String title, String body) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _resetAccount() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Reset local account'),
+        content: const Text(
+          'This deletes the saved handle and passcode on this device. Your sleep logs and tasks are kept.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await AuthService().resetAccount();
+    if (!mounted) return;
+    setState(() {
+      _registered = false;
+      _registerMode = true;
+      _handleController.clear();
+      _keyController.clear();
+    });
+    _toast('Local account reset');
   }
 
   @override
@@ -48,23 +150,25 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  const BrandHeader(
-                    status: 'Welcome back',
-                    trailing: 'Sign in',
+                  BrandHeader(
+                    status: _statusText,
+                    trailing: _trailingText,
                   ),
                   const SizedBox(height: 26),
-                  const Text(
-                    'Welcome back',
-                    style: TextStyle(
+                  Text(
+                    _registerMode ? 'Create your account' : 'Welcome back',
+                    style: const TextStyle(
                       color: Color(0xFF1F2933),
                       fontSize: 26,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const MicroText(
-                    'Sign in to your account',
-                    color: Color(0xFF667085),
+                  MicroText(
+                    _registerMode
+                        ? 'One handle and passcode, saved on this device.'
+                        : 'Sign in to your account',
+                    color: const Color(0xFF667085),
                     fontSize: 14,
                   ),
                   const SizedBox(height: 14),
@@ -78,57 +182,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 22),
-
-                  // Face ID sign-in
                   CyberCard(
-                    glow: true,
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const SectionLabel(
-                          'Sign in with Face ID',
-                          trailing: 'Optional',
-                        ),
-                        const SizedBox(height: 12),
-                        NeonButton(
-                          label: 'Sign in with Face ID',
-                          icon: Icons.fingerprint,
-                          onPressed: () => _toast('Face ID sign in'),
-                        ),
-                        const SizedBox(height: 8),
-                        const MicroText(
-                          'Use Face ID, or sign in with your passcode below.',
-                          color: Color(0xFF667085),
-                          fontSize: 12,
-                          textAlign: TextAlign.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const <Widget>[
+                        SectionLabel('Your account', trailing: 'On this device'),
+                        SizedBox(height: 8),
+                        Text(
+                          'No server account is needed for the demo. Your handle and '
+                          'passcode stay in this app; sleep logs and tasks are stored locally '
+                          'and sync to Oracle when a backend is configured.',
+                          style: TextStyle(
+                            color: Color(0xFF667085),
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: NeonButton(
-                          label: 'Apple',
-                          primary: false,
-                          icon: Icons.apple,
-                          onPressed: () => _toast('Apple sign in requested'),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: NeonButton(
-                          label: 'Google',
-                          primary: false,
-                          icon: Icons.g_mobiledata,
-                          onPressed: () => _toast('Google sign in requested'),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 22),
-
                   const MicroText(
                     'Email address',
                     color: Color(0xFF667085),
@@ -148,25 +221,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: <Widget>[
-                      const MicroText(
-                        'Passcode',
-                        color: Color(0xFF667085),
-                        fontSize: 13,
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () =>
-                            _toast('Password reset link sent'),
-                        child: const MicroText(
-                          'Forgot password?',
-                          color: Color(0xFF3D5AFE),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                  const MicroText(
+                    'Passcode',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
                   ),
+                  const SizedBox(height: 8),
                   TextField(
                     controller: _keyController,
                     obscureText: true,
@@ -176,7 +236,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
-                      hintText: '••••••••••••',
+                      hintText: 'At least 4 characters',
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -186,18 +246,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: 24,
                         height: 24,
                         child: Checkbox(
-                          value: _streakLock,
+                          value: _remember,
                           activeColor: CyberTheme.lime,
                           checkColor: CyberTheme.bg,
                           side: BorderSide(color: CyberTheme.line),
                           onChanged: (bool? value) {
-                            setState(() => _streakLock = value ?? false);
+                            setState(() => _remember = value ?? false);
                           },
                         ),
                       ),
                       const SizedBox(width: 8),
                       const MicroText(
-                        'Keep me signed in',
+                        'Stay signed in on this device',
                         color: Color(0xFF1F2933),
                         fontSize: 13,
                       ),
@@ -205,29 +265,65 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 20),
                   NeonButton(
-                    label: 'Continue',
+                    label: _busy
+                        ? 'Please wait...'
+                        : _registerMode
+                            ? 'Create account and continue'
+                            : 'Sign in and continue',
                     icon: Icons.arrow_forward,
-                    onPressed: widget.onEnter,
+                    onPressed: _busy ? null : _submit,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       TextButton(
-                        onPressed: () => _toast('Privacy'),
+                        onPressed: () => setState(
+                          () => _registerMode = !_registerMode,
+                        ),
+                        child: MicroText(
+                          _registerMode
+                              ? 'Already have an account? Sign in'
+                              : 'Need an account? Create one',
+                          color: const Color(0xFF3D5AFE),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_registered)
+                    TextButton(
+                      onPressed: _resetAccount,
+                      child: const MicroText(
+                        'Reset local account',
+                        color: Color(0xFF667085),
+                        fontSize: 12,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: () => _showInfo(
+                          'Privacy',
+                          'HypeMotiv stores your demo account, tasks and sleep '
+                          'sessions on this device. When a backend is configured, '
+                          'data is sent to your own Oracle database.',
+                        ),
                         child: const MicroText(
                           'Privacy',
                           color: Color(0xFF667085),
                           fontSize: 12,
                         ),
                       ),
-                      const MicroText(
-                        '·',
-                        color: Color(0xFF667085),
-                        fontSize: 12,
-                      ),
+                      const MicroText('·', color: Color(0xFF667085), fontSize: 12),
                       TextButton(
-                        onPressed: () => _toast('Terms'),
+                        onPressed: () => _showInfo(
+                          'Terms',
+                          'This is a student prototype for CIS099-2. Use it at '
+                          'your own risk and do not store real passwords here.',
+                        ),
                         child: const MicroText(
                           'Terms',
                           color: Color(0xFF667085),
@@ -235,13 +331,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 4),
-                  const MicroText(
-                    'Privacy · Terms · 256-bit encryption verified',
-                    color: Color(0xFF667085),
-                    fontSize: 12,
-                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -252,4 +341,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  String get _statusText => _registerMode ? 'Create account' : 'Sign in';
+  String get _trailingText => _registered ? 'Account saved' : 'First run';
 }

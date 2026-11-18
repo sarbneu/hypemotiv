@@ -50,6 +50,22 @@ curl http://localhost:3000/api/health
 #  "filesBackend":"local","timestamp":"..."}
 ```
 
+### Smoke test
+
+With the server already running on `127.0.0.1:3000`, run the full endpoint
+smoke test (health, sound search, CORS audio proxy, email demo mode, multipart
+WAV upload + byte-for-byte download, file listing, and controlled rip error):
+
+```bash
+bash scripts/smoke.sh
+# PASS: health: JSON status ok
+# ...
+# RESULT: 8 passed, 0 failed
+```
+
+It prints `PASS`/`FAIL` per check and exits non-zero if any check fails. Requires
+`curl`, `python3` (for JSON assertions) and `node` (to generate the test WAV).
+
 ### Environment variables
 
 See `.env.example`. Key ones:
@@ -124,6 +140,25 @@ curl 'http://localhost:3000/api/sounds?q=bruh&limit=5'
 #   "name":"BRUH sound effect!","url":"https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3",
 #   "category":"bruh","imageUrl":"https://www.myinstants.com/favicon.ico"}],"source":"live"}
 ```
+
+#### Current scraping status (verified 2026-11-18)
+
+Live scraping is **working** and reported as `"source":"live"`. The current
+myinstants.com markup is unchanged in its essentials: each result is a
+`<div class="instant">` with a `button.small-button` whose `onclick` calls
+`play('/media/sounds/<file>.mp3', ...)` and an `a.instant-link` holding the
+name. The parser in `server.js` targets that structure directly.
+
+Notes:
+
+- The old `/en/` landing URL returns **HTTP 404**; the no-query path now uses
+  the live homepage (`/`) and alternates.
+- The scraper tries `/en/search/?name=`, `/search/?name=` and `/index/us/?name=`
+  in order, because individual endpoints intermittently return 404.
+- If every endpoint is blocked, slow, or yields no results, the bundled list
+  of 12 verified MP3s is returned with `"source":"bundled"`. **The bundled
+  fallback is the supported mode when the live site is unavailable** — sound
+  search never fails outright.
 
 ### POST /api/files/upload
 

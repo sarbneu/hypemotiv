@@ -6,10 +6,12 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/screens/app_root.dart';
 import 'package:hypemotiv/screens/checklist_screen.dart';
 import 'package:hypemotiv/screens/settings_screen.dart';
 import 'package:hypemotiv/screens/sleep_tracking_screen.dart';
 import 'package:hypemotiv/screens/streak_screen.dart';
+import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 
@@ -103,6 +105,24 @@ class MoreScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text('Sign out'),
+                subtitle: const Text('Return to the sign-in screen'),
+                onTap: () async {
+                  await AuthService().signOut();
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute<void>(
+                      builder: (BuildContext context) => const AppRoot(),
+                    ),
+                    (Route<dynamic> route) => false,
+                  );
+                },
               ),
             ),
             const SizedBox(height: 16),

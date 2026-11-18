@@ -4,16 +4,26 @@ import 'package:flutter_tts/flutter_tts.dart';
 class TTSService {
   final FlutterTts _flutterTts = FlutterTts();
 
-  /// Initialize the TTS engine.
+  /// Initialize the TTS engine without ever blocking app startup.
+  /// Some Android images have no TTS engine installed; in that case the
+  /// calls can hang, so each one is bounded and failures are ignored.
   Future<void> init() async {
-    await _flutterTts.setLanguage('en-US');
-    await _flutterTts.setSpeechRate(0.5); // Slower for quotes
-    await _flutterTts.setPitch(1.0);
+    await _safe(() => _flutterTts.setLanguage('en-US'));
+    await _safe(() => _flutterTts.setSpeechRate(0.5)); // Slower for quotes
+    await _safe(() => _flutterTts.setPitch(1.0));
+  }
+
+  Future<void> _safe(Future<dynamic> Function() action) async {
+    try {
+      await action().timeout(const Duration(seconds: 2));
+    } catch (_) {
+      // TTS is optional; the rest of the app must still start.
+    }
   }
 
   /// Speak a quote text aloud.
   Future<void> speak(String text, {double rate = 0.5, double pitch = 1.0}) async {
-    await _flutterTts.speak(text);
+    await _safe(() => _flutterTts.speak(text));
   }
 
   /// Stop any current speech.

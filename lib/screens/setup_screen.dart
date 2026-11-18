@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 class SetupScreen extends StatefulWidget {
@@ -118,44 +119,26 @@ class _SetupScreenState extends State<SetupScreen> {
                     fontSize: 13,
                   ),
                   const SizedBox(height: 10),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: NeonButton(
-                          label: 'Apple',
-                          primary: false,
-                          icon: Icons.apple,
-                          height: 44,
-                          fontSize: 12,
-                          onPressed: () =>
-                              _toast('Apple sign in requested'),
+                  FutureBuilder<String?>(
+                    future: AuthService().savedUser(),
+                    builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                      return CyberCard(
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.check_circle_outline,
+                                color: Color(0xFF12B76A)),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Signed in as ${snapshot.data ?? 'this device'}',
+                              style: const TextStyle(
+                                color: Color(0xFF1F2933),
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: NeonButton(
-                          label: 'Google',
-                          primary: false,
-                          icon: Icons.g_mobiledata,
-                          height: 44,
-                          fontSize: 12,
-                          onPressed: () =>
-                              _toast('Google sign in requested'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: NeonButton(
-                          label: 'Passcode',
-                          primary: false,
-                          icon: Icons.key,
-                          height: 44,
-                          fontSize: 12,
-                          onPressed: () =>
-                              _toast('Passcode sign in requested'),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 18),
 

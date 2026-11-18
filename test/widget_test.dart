@@ -1,14 +1,67 @@
-// Smoke test for the shipped HypeMotiv app shell.
+// Smoke + authentication tests for the shipped HypeMotiv app shell.
 library;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hypemotiv/main.dart';
+import 'package:hypemotiv/screens/login_screen.dart';
+import 'package:hypemotiv/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  testWidgets('app boots into the secure operator login', (tester) async {
+  testWidgets('app boots into the sign-in screen', (tester) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const HypeMotivApp());
+    // pumpAndSettle never returns while the indeterminate progress animates.
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.textContaining('SECURE OPERATOR ACCESS'), findsOneWidget);
-    expect(find.textContaining('AUTHORIZE & ENTER ARENA'), findsOneWidget);
+    expect(find.textContaining('Create your account'), findsOneWidget);
+    expect(find.textContaining('Create account and continue'), findsOneWidget);
+  });
+
+  testWidgets('creating a local account enters the app', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    bool entered = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LoginScreen(onEnter: () => entered = true),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextField).at(0), 'runner@hypemotiv.app');
+    await tester.enterText(find.byType(TextField).at(1), 'wakeup123');
+    await tester.ensureVisible(find.text('Create account and continue'));
+    await tester.pump();
+    await tester.tap(find.text('Create account and continue'));
+    await tester.pumpAndSettle();
+
+    expect(entered, isTrue);
+    expect(await AuthService().isRegistered(), isTrue);
+    expect(await AuthService().isSignedIn(), isTrue);
+  });
+
+  testWidgets('wrong passcode is rejected', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final AuthService auth = AuthService();
+    await auth.register('runner@hypemotiv.app', 'wakeup123');
+    await auth.signOut();
+
+    bool entered = false;
+    await tester.pumpWidget(
+      MaterialApp(home: LoginScreen(onEnter: () => entered = true)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    // A registered account starts in sign-in mode.
+    await tester.enterText(find.byType(TextField).at(0), 'runner@hypemotiv.app');
+    await tester.enterText(find.byType(TextField).at(1), 'wrongpass');
+    await tester.ensureVisible(find.text('Sign in and continue'));
+    await tester.pump();
+    await tester.tap(find.text('Sign in and continue'));
+    await tester.pumpAndSettle();
+
+    expect(entered, isFalse);
+    expect(find.text('Incorrect passcode'), findsOneWidget);
   });
 }

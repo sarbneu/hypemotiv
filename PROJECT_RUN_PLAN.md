@@ -106,13 +106,13 @@ Manual pass, mark each ✅ / ❌:
 ### Phase H — Final QA
 `flutter analyze` (no errors), `flutter test` (pass), `flutter build apk --release`, backend smoke green, `git status` clean, push.
 
-## 3. Decisions needed from you
+## 3. Decisions (locked)
 
-1. Main submission target: **web demo / macOS desktop / Android device**?
-2. Do you have Oracle credentials and a VPS IP/domain, or should fallback mode remain the demo?
-3. Replace social login with a real local email/password flow, or leave as clearly labelled demo?
-4. Repair the Flutter SDK for tests, or remove the test file entirely?
+1. **Submission target:** Android device/emulator is primary; web + macOS must also run.
+2. **Oracle:** local fallback for the demo, VPS-ready via `.env` and `HYPE_API_URL`; no credentials supplied yet, so no live Oracle phase now.
+3. **Login:** replace demo Apple/Google/Face ID buttons with a real local handle + passcode flow (stored on device), keep social buttons removed.
+4. **Tests:** repair the local Flutter SDK so `flutter test` works.
 
 ## 4. Recommended order
 
-A → B → C → D → E → F → G → H. Do not start F until B and D are green.
+A → B → C → D → E → G → H. F is deferred until Oracle/VPS credentials exist.
