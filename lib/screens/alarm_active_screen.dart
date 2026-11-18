@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
+import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -86,11 +87,14 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       _disarmed = true;
     });
     await AudioService().stop();
-    _toast(
-      url == null
-          ? 'Check-in saved · Alarm stopped'
-          : 'Check-in uploaded · Alarm stopped',
-    );
+    if (url == null) {
+      final String? localPath = await ProofService.saveLocally(picked);
+      _toast(localPath == null
+          ? 'Photo kept in camera gallery · Alarm stopped'
+          : 'Check-in saved on device · Alarm stopped');
+    } else {
+      _toast('Check-in uploaded · Alarm stopped');
+    }
   }
 
   /// The snooze button really requires 20 taps, then schedules a 5-minute alarm.

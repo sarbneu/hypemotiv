@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
+import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
@@ -185,9 +186,12 @@ class _ArenaScreenState extends State<ArenaScreen> {
       File(picked.path),
       kind: 'proof',
     );
+    if (url == null) {
+      await ProofService.saveLocally(picked);
+    }
     if (!mounted) return;
     setState(() => _audioLoading = false);
-    _toast(url == null ? 'Check-in saved on this device' : 'Check-in uploaded');
+    _toast(url == null ? 'Check-in saved on device' : 'Check-in uploaded');
   }
 
   void _showSnoozePolicy() {
