@@ -49,7 +49,6 @@ class Sound {
 
 class SoundService {
   static const String _apiBase = 'https://myinstants.com';
-  static const String _apiEndpoint = '/api/';
   final Map<String, List<Sound>> _cachedSounds = {};
 
   /// Fetch sounds from myinstants.com
@@ -100,57 +99,25 @@ class SoundService {
     }
   }
 
+  /// Offline sounds. All URLs are real myinstants.com media files verified
+  /// with HTTP 200 + audio/mpeg (soundjay.com links used previously are 404).
   List<Sound> _getDemoSounds() {
+    const String base = 'https://www.myinstants.com/media/sounds/';
     return [
-      Sound(
-        id: 'demo_bell_1',
-        name: 'Morning Bell 1',
-        url: 'https://www.soundjay.com/alarms/sounds/bell-1.mp3',
-        category: 'Alarm',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_bell_2',
-        name: 'Morning Bell 2',
-        url: 'https://www.soundjay.com/alarms/sounds/bell-2.mp3',
-        category: 'Alarm',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_bell_3',
-        name: 'Morning Bell 3',
-        url: 'https://www.soundjay.com/alarms/sounds/bell-3.mp3',
-        category: 'Alarm',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_siren',
-        name: 'Siren',
-        url: 'https://www.soundjay.com/alarms/sounds/siren-1.mp3',
-        category: 'Alarm',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_game',
-        name: 'Game Over',
-        url: 'https://www.soundjay.com/alarms/sounds/game-over.mp3',
-        category: 'Game',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_meme_1',
-        name: 'Meme Laugh',
-        url: 'https://www.soundjay.com/alarms/sounds/laugh-1.mp3',
-        category: 'Meme',
-        imageUrl: '',
-      ),
-      Sound(
-        id: 'demo_meme_2',
-        name: 'Meme Wow',
-        url: 'https://www.soundjay.com/alarms/sounds/wow-1.mp3',
-        category: 'Meme',
-        imageUrl: '',
-      ),
+      Sound(id: 'offline_bruh', name: 'Bruh Sound Effect #2',
+          url: '${base}bruh-sound-effect_WstdzdM.mp3', category: 'Meme', imageUrl: ''),
+      Sound(id: 'offline_oof', name: 'Roblox OOF',
+          url: '${base}roblox-oof.mp3', category: 'Game', imageUrl: ''),
+      Sound(id: 'offline_airhorn', name: 'Airhorn',
+          url: '${base}airhorn.mp3', category: 'Alarm', imageUrl: ''),
+      Sound(id: 'offline_damage', name: 'Emotional Damage',
+          url: '${base}emotional-damage.mp3', category: 'Meme', imageUrl: ''),
+      Sound(id: 'offline_fbi', name: 'FBI Open Up',
+          url: '${base}fbi-open-up.mp3', category: 'Meme', imageUrl: ''),
+      Sound(id: 'offline_wow', name: 'Wow',
+          url: '${base}wow.mp3', category: 'Meme', imageUrl: ''),
+      Sound(id: 'offline_bell', name: 'Morning Bell',
+          url: '${base}bell.mp3', category: 'Alarm', imageUrl: ''),
     ];
   }
 

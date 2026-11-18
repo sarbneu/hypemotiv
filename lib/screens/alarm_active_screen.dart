@@ -1,11 +1,13 @@
-/// Screen 05 — live alarm strike with camera proof mission HUD.
+/// Screen 05 — live alarm with photo check-in.
 library;
 
 import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
+import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -58,7 +60,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
+        backgroundColor: CyberTheme.panel,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -69,7 +71,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       source: ImageSource.camera,
     );
     if (picked == null || !mounted) {
-      _toast('PROOF CANCELLED // ALARM STILL LIVE');
+      _toast('No photo taken · Alarm still ringing');
       return;
     }
 
@@ -83,10 +85,59 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       _uploading = false;
       _disarmed = true;
     });
+    await AudioService().stop();
     _toast(
       url == null
-          ? 'PROOF VERIFIED ON DEVICE // ALARM DISARMED'
-          : 'PROOF UPLOADED // ALARM DISARMED',
+          ? 'Check-in saved · Alarm stopped'
+          : 'Check-in uploaded · Alarm stopped',
+    );
+  }
+
+  /// The snooze button really requires 20 taps, then schedules a 5-minute alarm.
+  Future<void> _snoozeWithExercise() async {
+    int completed = 0;
+    final bool? accepted = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return AlertDialog(
+              title: const Text('20 jumping jacks'),
+              content: Text('Tap the button $completed of 20 times to unlock snooze.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    if (completed < 20) {
+                      setState(() => completed++);
+                    } else {
+                      Navigator.of(dialogContext).pop(true);
+                    }
+                  },
+                  child: Text(completed < 20 ? '1 rep' : 'Finish'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (accepted != true || !mounted) return;
+
+    final DateTime wake = DateTime.now().add(const Duration(minutes: 5));
+    await AudioService().stop();
+    await NotificationService().scheduleAlarm(
+      when: wake,
+      title: 'Wake up',
+      body: 'Snooze is over. Get up.',
+      id: wake.millisecondsSinceEpoch ~/ 1000,
+    );
+    setState(() => _disarmed = true);
+    _toast(
+      'Snoozed until ${wake.hour.toString().padLeft(2, '0')}:${wake.minute.toString().padLeft(2, '0')}',
     );
   }
 
@@ -102,22 +153,17 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const BrandHeader(
-                    status: 'ALARM ACTIVE // BLAST LEVEL 120%',
-                    trailing: 'SNOOZE LOCKED',
-                    statusColor: Color(0xFFFF2E88),
+                    status: 'Alarm ringing',
+                    trailing: 'Snooze locked',
+                    statusColor: Color(0xFFF04438),
                   ),
                   const SizedBox(height: 22),
                   Text(
                     _formattedTime,
                     style: const TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFFB6FF3B),
-                      fontSize: 44,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                      shadows: <Shadow>[
-                        Shadow(color: Color(0x55B6FF3B), blurRadius: 20),
-                      ],
+                      color: Color(0xFF3D5AFE),
+                      fontSize: 40,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -127,20 +173,20 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          'WAR VOLUME AUDIO STRIKE',
-                          trailing: '120%',
+                          'Playing at high volume',
+                          trailing: 'High volume',
                         ),
                         const SizedBox(height: 10),
                         const Waveform(
-                          color: Color(0xFFFF2E88),
+                          color: Color(0xFF3D5AFE),
                           bars: 42,
                           height: 56,
                         ),
                         const SizedBox(height: 6),
                         const MicroText(
-                          'NO SNOOZE // DISCIPLINE OVERRIDE ENGAGED',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          'Snooze is locked',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -152,26 +198,24 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          'AI ROAST DISPATCH',
-                          trailing: 'GOGGINS',
+                          'Motivation for today',
+                          trailing: 'David Goggins',
                         ),
                         const SizedBox(height: 10),
                         const Text(
                           "David Goggins: Who's Gonna Carry...",
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFFF4F8F3),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1F2933),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 8),
                         const Text(
                           _quote,
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFF00E5FF),
-                            fontSize: 12,
+                            color: Color(0xFF667085),
+                            fontSize: 14,
                             height: 1.5,
                           ),
                         ),
@@ -188,15 +232,15 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                         children: <Widget>[
                           Container(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
+                              gradient: const LinearGradient(
                                 colors: <Color>[
-                                  CyberTheme.panelAlt,
-                                  CyberTheme.bg,
+                                  Color(0xFFF9FAFB),
+                                  Color(0xFFFFFFFF),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           Padding(
@@ -205,37 +249,36 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 const SectionLabel(
-                                  'MISSION HUD SCANNER',
-                                  trailing: 'LOCK',
+                                  'Photo check-in',
+                                  trailing: 'Required',
                                 ),
                                 const Spacer(),
                                 const MicroText(
-                                  'TARGET: Bathroom Sink & Runner',
-                                  color: Color(0xFFF4F8F3),
-                                  fontSize: 11,
+                                  'Show your bathroom sink to check in',
+                                  color: Color(0xFF1F2933),
+                                  fontSize: 13,
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: <Widget>[
                                     const Text(
-                                      '94% Match',
+                                      'Ready when you are',
                                       style: TextStyle(
-                                        fontFamily: 'monospace',
-                                        color: Color(0xFFB6FF3B),
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
+                                        color: Color(0xFF3D5AFE),
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                     ),
                                     const Spacer(),
-                                    const StatusChip('SCANNING'),
+                                    const StatusChip('Ready'),
                                   ],
                                 ),
                                 const SizedBox(height: 10),
                                 const LinearProgressIndicator(
                                   value: 0.94,
                                   minHeight: 4,
-                                  color: Color(0xFFB6FF3B),
-                                  backgroundColor: Color(0xFF1E2A22),
+                                  color: Color(0xFF3D5AFE),
+                                  backgroundColor: Color(0xFFE4E7EC),
                                 ),
                               ],
                             ),
@@ -253,15 +296,15 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                             children: <Widget>[
                               const Icon(
                                 Icons.verified,
-                                color: Color(0xFFB6FF3B),
+                                color: Color(0xFF12B76A),
                                 size: 22,
                               ),
                               const SizedBox(width: 10),
                               const Expanded(
                                 child: MicroText(
-                                  'PROOF ACCEPTED // ALARM DISARMED',
-                                  color: Color(0xFFB6FF3B),
-                                  fontSize: 11,
+                                  'Check-in complete · Alarm stopped',
+                                  color: Color(0xFF12B76A),
+                                  fontSize: 13,
                                 ),
                               ),
                             ],
@@ -269,41 +312,38 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                         )
                       : NeonButton(
                           label: _uploading
-                              ? 'UPLOADING PROOF...'
-                              : 'CONFIRM PROOF & DISARM',
+                              ? 'Uploading photo...'
+                              : 'Take photo & stop alarm',
                           icon: Icons.camera_alt,
                           onPressed: _confirmProof,
                         ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Need 5 minutes? Pay with 20 Jumping Jacks penalty',
+                    'Need 5 more minutes? Do 20 jumping jacks first.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFF7C8C82),
-                      fontSize: 10,
+                      color: Color(0xFF667085),
+                      fontSize: 13,
                     ),
                   ),
                   const SizedBox(height: 8),
                   NeonButton(
-                    label: 'PAY TO SNOOZE',
+                    label: 'Snooze with 20 jumping jacks',
                     primary: false,
                     icon: Icons.fitness_center,
-                    onPressed: () => _toast(
-                      'SNOOZE PENALTY ARMED // 20 JUMPING JACKS REQUIRED',
-                    ),
+                    onPressed: _snoozeWithExercise,
                   ),
                   const SizedBox(height: 22),
                   const SectionLabel(
-                    'MORNING PRIORITY PRIME',
-                    trailing: '02 TASKS',
+                    'Today\'s priorities',
+                    trailing: '2 tasks',
                   ),
                   const SizedBox(height: 10),
                   const _PriorityItem(
-                    text: 'Chug 500ml cold electrolyte water',
+                    text: 'Drink a glass of water',
                   ),
                   const SizedBox(height: 8),
-                  const _PriorityItem(text: 'Gym session heavy deadlifts'),
+                  const _PriorityItem(text: 'Morning workout'),
                 ],
               ),
             ),
@@ -326,15 +366,15 @@ class _PriorityItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.radio_button_unchecked, color: Color(0xFF00E5FF), size: 18),
+          const Icon(Icons.radio_button_unchecked,
+              color: Color(0xFF0F766E), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: const TextStyle(
-                fontFamily: 'monospace',
-                color: Color(0xFFF4F8F3),
-                fontSize: 11,
+                color: Color(0xFF1F2933),
+                fontSize: 14,
               ),
             ),
           ),

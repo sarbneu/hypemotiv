@@ -1,54 +1,64 @@
-/// Audio playback service for playing meme alarm sounds and audio clips.
+/// Audio playback for alarm sounds, ripped clips and voice messages.
+///
+/// Falls back to a verified, publicly reachable sound when a URL is empty or
+/// fails, so the alarm always makes a noise even with no backend connection.
+library;
+
 import 'package:audioplayers/audioplayers.dart';
-import 'package:audio_session/audio_session.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hypemotiv/services/hype_api.dart';
 
 class AudioService {
   static final AudioService _instance = AudioService._internal();
   factory AudioService() => _instance;
-
   AudioService._internal();
 
-  late AudioPlayer _audioPlayer;
-  Duration? _position;
+  /// Verified reachable meme sound (HTTP 200, audio/mpeg).
+  static const String fallbackSoundUrl =
+      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
 
-  /// Initialize the audio player.
+  late AudioPlayer _audioPlayer;
+
   Future<void> init() async {
     _audioPlayer = AudioPlayer();
   }
 
-  /// Play a sound file from a local path or URL.
+  /// Play a local file path or a remote URL.
   Future<void> play(String audioUrl, {bool loop = false}) async {
-    await _audioPlayer.setSourceUrl(audioUrl);
-    await _audioPlayer.resume();
+    final String source =
+        audioUrl.trim().isEmpty ? fallbackSoundUrl : audioUrl.trim();
+    final String playable = HypeApi.playableUrl(source);
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setReleaseMode(
+        loop ? ReleaseMode.loop : ReleaseMode.release,
+      );
+      await _audioPlayer.setSourceUrl(playable);
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint('AudioService: could not play $source ($e); using fallback');
+      await _playFallback();
+    }
   }
 
-  /// Pause playback.
-  Future<void> pause() async {
-    await _audioPlayer.pause();
+  Future<void> _playFallback() async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setSourceUrl(HypeApi.playableUrl(fallbackSoundUrl));
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint('AudioService: fallback also failed: $e');
+    }
   }
 
-  /// Resume playback.
-  Future<void> resume() async {
-    await _audioPlayer.resume();
-  }
+  Future<void> pause() => _audioPlayer.pause();
+  Future<void> resume() => _audioPlayer.resume();
+  Future<void> stop() => _audioPlayer.stop();
+  Future<Duration?> getDuration() => _audioPlayer.getDuration();
 
-  /// Stop playback.
-  Future<void> stop() async {
-    await _audioPlayer.stop();
-  }
-
-  /// Get the total duration of the current audio.
-  Future<Duration?> getDuration() async {
-    return _audioPlayer.getDuration();
-  }
-
-  /// Check if currently playing.
   bool get isPlaying => _audioPlayer.state == PlayerState.playing;
-
-  /// Get the playback state.
   PlayerState get state => _audioPlayer.state;
 
-  /// Toggle play/pause.
   Future<void> togglePlayPause() async {
     if (isPlaying) {
       await pause();
@@ -56,4 +66,6 @@ class AudioService {
       await resume();
     }
   }
+
+  Future<void> dispose() => _audioPlayer.dispose();
 }

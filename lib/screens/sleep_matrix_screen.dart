@@ -1,262 +1,216 @@
-/// Screen 04 — circadian recovery / sleep matrix telemetry.
+/// Sleep tab: real sleep tracking first, then a simple sleep overview.
 library;
 
 import 'package:flutter/material.dart';
-import 'package:hypemotiv/widgets/cyber_theme.dart';
+import 'package:hypemotiv/screens/sleep_tracking_screen.dart';
+import 'package:hypemotiv/services/notification_service.dart';
+import 'package:hypemotiv/services/sleep_tracking_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SleepMatrixScreen extends StatelessWidget {
+class SleepMatrixScreen extends StatefulWidget {
   const SleepMatrixScreen({super.key});
 
-  void _toast(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
-        behavior: SnackBarBehavior.floating,
-      ),
+  @override
+  State<SleepMatrixScreen> createState() => _SleepMatrixScreenState();
+}
+
+class _SleepMatrixScreenState extends State<SleepMatrixScreen> {
+  final SleepTrackingService _service = SleepTrackingService();
+  bool _blockingOn = true;
+
+  static const int _windDownId = 9045;
+  static const String _windDownKey = 'settings_wind_down';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWindDown();
+  }
+
+  Future<void> _loadWindDown() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(_windDownKey) ?? true;
+    if (!mounted) return;
+    setState(() => _blockingOn = enabled);
+    if (enabled) await _scheduleWindDown();
+  }
+
+  Future<void> _scheduleWindDown() async {
+    await NotificationService().scheduleDaily(
+      hour: 22,
+      minute: 45,
+      title: 'Wind-down reminder',
+      body: 'Put distracting apps away and get ready for bed.',
+      id: _windDownId,
     );
+  }
+
+  Future<void> _setWindDown(bool value) async {
+    setState(() => _blockingOn = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_windDownKey, value);
+    if (value) {
+      await _scheduleWindDown();
+    } else {
+      await NotificationService().cancel(_windDownId);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final history = _service.getSleepHistory();
+    final sci = _service.getSleepConsistencyIndex();
+    final average = _service.getAverageSleepDuration();
+    final averageText = average == Duration.zero
+        ? '—'
+        : '${average.inHours}h ${average.inMinutes.remainder(60).toString().padLeft(2, '0')}m';
+
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const BrandHeader(
-                    status: 'CIRCADIAN RECOVERY',
-                    trailing: '5-DAY STREAK',
+      appBar: AppBar(
+        title: const Text('Sleep'),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Sleep and routines', style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 4),
+            Text(
+              'Track your nights and keep a steady wake-up time.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurface.withValues(alpha: 0.65),
                   ),
-                  const SizedBox(height: 22),
-                  const Text(
-                    'Sleep Matrix',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFFF4F8F3),
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  CyberCard(
-                    glow: true,
-                    child: Column(
-                      children: <Widget>[
+            ),
+            const SizedBox(height: 16),
+
+            // The real, usable feature comes first.
+            const SleepTrackingSection(),
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Your sleep pattern',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
                         SizedBox(
-                          width: 172,
-                          height: 172,
+                          width: 96,
+                          height: 96,
                           child: Stack(
                             alignment: Alignment.center,
-                            children: <Widget>[
-                              SizedBox(
-                                width: 172,
-                                height: 172,
-                                child: CircularProgressIndicator(
-                                  value: 0.89,
-                                  strokeWidth: 10,
-                                  backgroundColor: CyberTheme.line,
-                                  color: CyberTheme.lime,
-                                ),
+                            children: [
+                              CircularProgressIndicator(
+                                value: history.isEmpty ? 0 : sci / 100,
+                                strokeWidth: 9,
+                                backgroundColor: scheme.surfaceContainerHighest,
+                                color: scheme.primary,
                               ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  const Text(
-                                    '89%',
-                                    style: TextStyle(
-                                      fontFamily: 'monospace',
-                                      color: Color(0xFFB6FF3B),
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  const MicroText(
-                                    'SCI SCORE',
-                                    color: Color(0xFF00E5FF),
-                                    fontSize: 9,
-                                  ),
-                                  const MicroText(
-                                    'OPTIMAL',
-                                    color: Color(0xFF7C8C82),
-                                    fontSize: 9,
-                                  ),
-                                ],
+                              Text(
+                                history.isEmpty ? '—' : '$sci%',
+                                style: Theme.of(context).textTheme.titleLarge,
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        const MicroText(
-                          'SCI SCORE 89% OPTIMAL',
-                          color: Color(0xFFB6FF3B),
-                          fontSize: 11,
-                          letterSpacing: 1.6,
-                        ),
-                        const SizedBox(height: 18),
-                        const Divider(color: Color(0xFF1E2A22), height: 1),
-                        const SizedBox(height: 14),
-                        const MicroText(
-                          'TOTAL REST ARCHITECTURE 7h 45m',
-                          color: Color(0xFFF4F8F3),
-                          fontSize: 10,
-                        ),
-                        const SizedBox(height: 12),
-                        const _RestRow(
-                          label: 'Deep Rest',
-                          value: '2h14m',
-                          ratio: 0.28,
-                          color: Color(0xFFB6FF3B),
-                        ),
-                        const SizedBox(height: 10),
-                        const _RestRow(
-                          label: 'Dream REM',
-                          value: '1h48m',
-                          ratio: 0.23,
-                          color: Color(0xFF00E5FF),
-                        ),
-                        const SizedBox(height: 10),
-                        const _RestRow(
-                          label: 'Light Rest',
-                          value: '3h40m',
-                          ratio: 0.47,
-                          color: Color(0xFF7C8C82),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  const SectionLabel(
-                    'SCHEDULED SHUTDOWN',
-                    trailing: 'AUTO // ARMED',
-                  ),
-                  const SizedBox(height: 10),
-                  CyberCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            const MicroText(
-                              'Lockdown in 2h45m',
-                              color: Color(0xFFFF2E88),
-                              fontSize: 13,
-                            ),
-                            const Spacer(),
-                            const StatusChip('10:45 PM'),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const MicroText(
-                          'Auto-lock IG / TikTok / YouTube at 10:45 PM',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 10,
-                          letterSpacing: 0.6,
-                        ),
-                        const SizedBox(height: 12),
-                        const MicroText(
-                          'Neural Sleep Frequency: 432Hz Binaural Phonk',
-                          color: Color(0xFF00E5FF),
-                          fontSize: 10,
-                        ),
-                        const SizedBox(height: 14),
-                        NeonButton(
-                          label: 'ENGAGE SLEEP PROTOCOL & LOCKS APP',
-                          icon: Icons.lock,
-                          fontSize: 10,
-                          onPressed: () => _toast(
-                            context,
-                            'SLEEP PROTOCOL ENGAGED // DISTRACTION LOCKS ON',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  const SectionLabel('TELEMETRY', trailing: 'MIC ON'),
-                  const SizedBox(height: 10),
-                  CyberCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        const MicroText(
-                          'MICROPHONE / AUDIO EVENTS DETECTED',
-                          color: Color(0xFF00E5FF),
-                          fontSize: 9,
-                        ),
-                        const SizedBox(height: 8),
-                        const Row(
-                          children: <Widget>[
-                            Icon(
-                              Icons.graphic_eq,
-                              color: Color(0xFFFF2E88),
-                              size: 16,
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '1 Disturbance (03:42 AM Snort/Stir)',
-                                style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  color: Color(0xFFF4F8F3),
-                                  fontSize: 11,
-                                ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Consistency score',
+                                  style: Theme.of(context).textTheme.bodyMedium),
+                              Text(
+                                history.isEmpty
+                                    ? 'Log a few nights to see your score'
+                                    : 'Based on your last ${history.length} night(s)',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: scheme.onSurface.withValues(alpha: 0.6),
+                                    ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        const _DataRow(
-                          label: 'Acoustic Baseline',
-                          value: '28 dB',
-                        ),
-                        const SizedBox(height: 6),
-                        const _DataRow(
-                          label: 'Room Sound Profile',
-                          value: '+30 dB Safe Zone',
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  CyberCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        const MicroText(
-                          'NEXT WAKE SYNERGY',
-                          color: Color(0xFFB6FF3B),
-                          fontSize: 9,
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Hard Math Drill & Freezing Shower',
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFFF4F8F3),
-                            fontSize: 12,
+                              const SizedBox(height: 12),
+                              Text('Average sleep: $averageText',
+                                  style: Theme.of(context).textTheme.bodyMedium),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        const Waveform(
-                          color: Color(0xFF00E5FF),
-                          bars: 44,
-                          height: 34,
-                        ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const ScanOverlay(),
-        ],
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('A typical night',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Reference breakdown for a 7h 45m night',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    const _RestRow(label: 'Deep sleep', value: '2h 14m', ratio: 0.29),
+                    const SizedBox(height: 12),
+                    const _RestRow(label: 'REM sleep', value: '1h 48m', ratio: 0.23),
+                    const SizedBox(height: 12),
+                    const _RestRow(label: 'Light sleep', value: '3h 40m', ratio: 0.48),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Wind-down reminder',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pause distracting apps at 10:45 PM and keep a regular bedtime.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Wind-down reminder'),
+                      subtitle: const Text('Reminder at 10:45 PM'),
+                      value: _blockingOn,
+                      onChanged: _setWindDown,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Next wake-up plan: glass of water, then a short workout.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
@@ -267,61 +221,31 @@ class _RestRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.ratio,
-    required this.color,
   });
 
   final String label;
   final String value;
   final double ratio;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Row(
-      children: <Widget>[
-        SizedBox(
-          width: 88,
-          child: MicroText(label, color: CyberTheme.muted, fontSize: 9),
-        ),
+      children: [
+        SizedBox(width: 90, child: Text(label)),
         Expanded(
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
               value: ratio,
-              minHeight: 6,
-              backgroundColor: CyberTheme.line,
-              color: color,
+              minHeight: 8,
+              backgroundColor: scheme.surfaceContainerHighest,
+              color: scheme.primary,
             ),
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 48,
-          child: MicroText(
-            value,
-            color: color,
-            fontSize: 10,
-            textAlign: TextAlign.right,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DataRow extends StatelessWidget {
-  const _DataRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        MicroText(label, color: CyberTheme.muted, fontSize: 10),
-        const Spacer(),
-        MicroText(value, color: CyberTheme.white, fontSize: 10),
+        const SizedBox(width: 12),
+        SizedBox(width: 52, child: Text(value, textAlign: TextAlign.right)),
       ],
     );
   }

@@ -6,9 +6,15 @@ Student: **Sarbeshwor Neupane** · ID **2527665**.
 
 ## What is implemented
 
-Six screenshot-matched screens: secure operator access, arena setup, Dawn Raid
-dashboard, Sound Lab & meme hub, sleep matrix, and the active alarm / proof-disarm
-flow. Four-tab navigation: **ALARMS · BOUND LAB · MISSIONS · STATS**.
+A calm, human-designed app with every action wired to real behaviour. Six-tab
+navigation: **ALARMS · BOUND LAB · MISSIONS · STATS · SLEEP · MORE**.
+
+Working features: sign-in/setup flow, alarm creation with real local notifications,
+camera proof check-in, 20-jumping-jack snooze that schedules a 5-minute alarm,
+sound library (myinstants scraping, CORS media proxy, video audio ripping, TTS
+messages), sleep tracking (start/stop sessions, manual log, microphone room-noise
+measurement, consistency score), 5-task checklist, streak stats, accountability
+email through nodemailer, persisted light/dark theme and settings.
 
 ## Architecture — which backend, storage and hosting are used
 
@@ -101,6 +107,11 @@ hypemotiv/
 ## Verification performed
 
 - `flutter analyze` — no errors (legacy info-level lints remain in older files).
-- `flutter build apk --release` — succeeded, `app-release.apk` ≈ 52.5 MB (< 150 MB target).
+- `flutter build apk --release` — succeeded, `app-release.apk` ≈ 55.3 MB (< 150 MB target).
 - Backend: `node --check server.js`, live `/api/health`, `/api/sounds?q=bruh`,
   `/api/email/send`, multipart upload and byte-for-byte file download all returned real responses.
+- Audio proxy: `GET /api/sounds/proxy?url=...` returned 200 `audio/mpeg` with
+  `Access-Control-Allow-Origin: *`; browser decoded the audio (readyState 4).
+- Live UI checks: login → setup → dashboard; all six tabs; sound play; sleep
+  session start/stop persisted; dark-mode toggle changed the rendered theme;
+  adding an alarm persisted it and scheduled a local notification.

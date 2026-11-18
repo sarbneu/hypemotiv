@@ -6,13 +6,14 @@ plugins {
 
 android {
     namespace = "com.example.hypemotiv"
-    // file_picker/flutter_plugin_android_lifecycle require API 36+.
-    compileSdk = 36
+    // flutter_local_notifications + AndroidX core 1.19 require API 37.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -47,4 +48,8 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

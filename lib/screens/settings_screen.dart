@@ -1,7 +1,12 @@
 /// Settings screen - configuration including Oracle connectivity.
+library;
+
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/oracle_service.dart';
+import 'package:hypemotiv/services/theme_service.dart';
 import 'package:hypemotiv/utils/oracle_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,13 +16,57 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const String _syncKey = 'settings_sync_enabled';
+  static const String _darkModeKey = 'settings_dark_mode';
+  static const String _soundKey = 'settings_sound_enabled';
+
   String _oracleStatus = 'Not connected';
   bool _syncEnabled = false;
+  bool _darkMode = false;
+  bool _soundEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _checkOracleStatus();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _syncEnabled = prefs.getBool(_syncKey) ?? false;
+      _darkMode = prefs.getBool(_darkModeKey) ?? false;
+      _soundEnabled = prefs.getBool(_soundKey) ?? true;
+    });
+  }
+
+  Future<void> _saveBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  Future<void> _testSound() async {
+    if (!_soundEnabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sound effects are turned off')),
+      );
+      return;
+    }
+    try {
+      await AudioService().play(AudioService.fallbackSoundUrl);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sound played')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not play sound')),
+      );
+    }
   }
 
   Future<void> _checkOracleStatus() async {
@@ -50,14 +99,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'Sync to Oracle',
               subtitle: 'Push local data to Oracle database',
               value: _syncEnabled,
-              onChanged: (v) => setState(() => _syncEnabled = v),
+              onChanged: (v) {
+                setState(() => _syncEnabled = v);
+                _saveBool(_syncKey, v);
+              },
             ),
             const SizedBox(height: 12),
             _buildSwitchListTile(
               title: 'Dark Mode',
               subtitle: 'Choose light or dark theme',
-              value: true,
-              onChanged: (v) {},
+              value: _darkMode,
+              onChanged: (v) {
+                setState(() => _darkMode = v);
+                ThemeService().setDark(v);
+              },
+            ),
+            const SizedBox(height: 12),
+            _buildSwitchListTile(
+              title: 'Sound effects',
+              subtitle: 'Enable alarm and feedback sounds',
+              value: _soundEnabled,
+              onChanged: (v) {
+                setState(() => _soundEnabled = v);
+                _saveBool(_soundKey, v);
+              },
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.volume_up, color: Colors.yellow),
+              title: const Text('Test sound',
+                  style: TextStyle(color: Colors.white)),
+              subtitle: const Text('Play the fallback alarm sound',
+                  style: TextStyle(color: Color(0xFFB0B0B0))),
+              onTap: _testSound,
             ),
             const SizedBox(height: 24),
             _buildSectionTitle('Account'),
@@ -128,13 +202,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _oracleStatus.contains('ok') || _oracleStatus.contains('ok')
+                    color: _oracleStatus.contains('ok')
                         ? Colors.green
                         : Colors.orange,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    _oracleStatus.contains('ok') || _oracleStatus.contains('ok') ? 'Connected' : 'Connecting...',
+                    _oracleStatus.contains('ok')
+                        ? 'Connected'
+                        : _oracleStatus.contains('unreachable') ||
+                                _oracleStatus.contains('error')
+                            ? 'Backend offline'
+                            : 'Local mode',
                     style: const TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ),

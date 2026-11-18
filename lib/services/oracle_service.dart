@@ -66,7 +66,14 @@ class OracleService {
         Uri.parse('$baseUrl/api/health'),
       );
       if (response.statusCode == 200) {
-        return {'status': 'ok', 'timestamp': DateTime.now().toIso8601String()};
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final oracle = (data['oracle'] ?? 'unknown').toString();
+        return {
+          'status': oracle == 'connected' ? 'ok' : 'offline',
+          'oracle': oracle,
+          'filesBackend': (data['filesBackend'] ?? 'unknown').toString(),
+          'timestamp': DateTime.now().toIso8601String(),
+        };
       }
       return {
         'status': 'unreachable',

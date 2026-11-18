@@ -1,4 +1,4 @@
-/// Screen 01 — operator authorisation gate.
+/// Screen 01 — sign-in gate.
 library;
 
 import 'package:flutter/material.dart';
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
+        backgroundColor: CyberTheme.panel,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -49,63 +49,57 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const BrandHeader(
-                    status: 'SYS // ONLINE',
-                    trailing: 'STAGE 01 PROTOCOL',
+                    status: 'Welcome back',
+                    trailing: 'Sign in',
                   ),
                   const SizedBox(height: 26),
                   const Text(
-                    'STAGE 01 PROTOCOL',
+                    'Welcome back',
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFFB6FF3B),
-                      fontSize: 27,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.4,
+                      color: Color(0xFF1F2933),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   const MicroText(
-                    'SECURE OPERATOR ACCESS',
-                    color: Color(0xFF00E5FF),
-                    fontSize: 11,
-                    letterSpacing: 2.2,
+                    'Sign in to your account',
+                    color: Color(0xFF667085),
+                    fontSize: 14,
                   ),
                   const SizedBox(height: 14),
                   const Text(
-                    'Sync discipline nodes to restore your streak multiplier, '
-                    'accountability vault, and roast packs.',
+                    'Pick up where you left off: your streak, your reminders '
+                    'and your morning routine.',
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFF7C8C82),
-                      fontSize: 12,
-                      height: 1.6,
+                      color: Color(0xFF667085),
+                      fontSize: 14,
+                      height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 22),
 
-                  // BIO-LOCK OVERRIDE
+                  // Face ID sign-in
                   CyberCard(
                     glow: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          'BIO-LOCK OVERRIDE',
-                          trailing: 'AUTH // 01',
+                          'Sign in with Face ID',
+                          trailing: 'Optional',
                         ),
                         const SizedBox(height: 12),
                         NeonButton(
-                          label: 'PASS',
+                          label: 'Sign in with Face ID',
                           icon: Icons.fingerprint,
-                          onPressed: () => _toast(
-                            'FACE ID / NEURAL SCAN / TAP WAKE — BIOMETRIC PASS',
-                          ),
+                          onPressed: () => _toast('Face ID sign in'),
                         ),
                         const SizedBox(height: 8),
                         const MicroText(
-                          'Face ID / Neural Scan / Tap Wake',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          'Use Face ID, or sign in with your passcode below.',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -116,21 +110,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: <Widget>[
                       Expanded(
                         child: NeonButton(
-                          label: 'Apple Key',
+                          label: 'Apple',
                           primary: false,
                           icon: Icons.apple,
-                          onPressed: () =>
-                              _toast('APPLE KEY HANDSHAKE REQUESTED'),
+                          onPressed: () => _toast('Apple sign in requested'),
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: NeonButton(
-                          label: 'Google ID',
+                          label: 'Google',
                           primary: false,
                           icon: Icons.g_mobiledata,
-                          onPressed: () =>
-                              _toast('GOOGLE ID HANDSHAKE REQUESTED'),
+                          onPressed: () => _toast('Google sign in requested'),
                         ),
                       ),
                     ],
@@ -138,10 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 22),
 
                   const MicroText(
-                    'RUNNER IDENTIFIER / HANDLE',
-                    color: Color(0xFF00E5FF),
-                    fontSize: 10,
-                    letterSpacing: 1.8,
+                    'Email address',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -150,29 +141,28 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       prefixIcon: Icon(
                         Icons.alternate_email,
-                        color: Color(0xFFB6FF3B),
+                        color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
-                      hintText: '@runner@hypemotiv.app',
+                      hintText: 'you@example.com',
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: <Widget>[
                       const MicroText(
-                        'DAWN SECURITY KEY',
-                        color: Color(0xFF00E5FF),
-                        fontSize: 10,
-                        letterSpacing: 1.8,
+                        'Passcode',
+                        color: Color(0xFF667085),
+                        fontSize: 13,
                       ),
                       const Spacer(),
                       TextButton(
                         onPressed: () =>
-                            _toast('KEY RECOVERY LINK DISPATCHED'),
+                            _toast('Password reset link sent'),
                         child: const MicroText(
-                          'Forgot Key?',
-                          color: Color(0xFFFF2E88),
-                          fontSize: 9,
+                          'Forgot password?',
+                          color: Color(0xFF3D5AFE),
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -183,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       prefixIcon: Icon(
                         Icons.key,
-                        color: Color(0xFFB6FF3B),
+                        color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
                       hintText: '••••••••••••',
@@ -207,17 +197,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(width: 8),
                       const MicroText(
-                        'Maintain Daily Streak Lock',
-                        color: Color(0xFFF4F8F3),
-                        fontSize: 11,
-                        letterSpacing: 0.6,
+                        'Keep me signed in',
+                        color: Color(0xFF1F2933),
+                        fontSize: 13,
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
                   NeonButton(
-                    label: 'AUTHORIZE & ENTER ARENA ⚡',
-                    icon: Icons.bolt,
+                    label: 'Continue',
+                    icon: Icons.arrow_forward,
                     onPressed: widget.onEnter,
                   ),
                   const SizedBox(height: 20),
@@ -225,33 +214,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       TextButton(
-                        onPressed: () => _toast('PRIVACY MANIFESTO'),
+                        onPressed: () => _toast('Privacy'),
                         child: const MicroText(
                           'Privacy',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                         ),
                       ),
                       const MicroText(
-                        '/',
-                        color: Color(0xFF1E2A22),
-                        fontSize: 9,
+                        '·',
+                        color: Color(0xFF667085),
+                        fontSize: 12,
                       ),
                       TextButton(
-                        onPressed: () => _toast('TERMS OF DISCIPLINE'),
+                        onPressed: () => _toast('Terms'),
                         child: const MicroText(
                           'Terms',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   const MicroText(
-                    '256-BIT DISCIPLINE ENCRYPTION VERIFIED',
-                    color: Color(0xFF1E2A22),
-                    fontSize: 9,
+                    'Privacy · Terms · 256-bit encryption verified',
+                    color: Color(0xFF667085),
+                    fontSize: 12,
                     textAlign: TextAlign.center,
                   ),
                 ],

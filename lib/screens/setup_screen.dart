@@ -1,4 +1,4 @@
-/// Screen 06 — first-run beta setup / wake discipline enrolment.
+/// Screen 06 — first-run setup / morning routine enrolment.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,9 +21,9 @@ class _SetupScreenState extends State<SetupScreen> {
   int _disciplineIndex = 0;
 
   static const List<String> _disciplines = <String>[
-    'Goggins Protocol',
-    'Brutal Friend Roast (AI Meme)',
-    'Bass-Boost Phonk',
+    'David Goggins',
+    'Brutal friend',
+    'Bass-boosted music',
   ];
 
   static const List<IconData> _disciplineIcons = <IconData>[
@@ -43,7 +43,7 @@ class _SetupScreenState extends State<SetupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
+        backgroundColor: CyberTheme.panel,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -61,55 +61,50 @@ class _SetupScreenState extends State<SetupScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const BrandHeader(
-                    status: 'HYPEMOTIV BETA 2.0',
-                    trailing: '0% SNOOZE SANCTION APP',
+                    status: 'Morning setup',
+                    trailing: 'Step 1 of 1',
                   ),
                   const SizedBox(height: 24),
                   const Text(
-                    'DESTROY SNOOZE.\nOWN YOUR DAWN.',
+                    'Set up your morning routine',
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFFB6FF3B),
-                      fontSize: 27,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.6,
-                      height: 1.25,
+                      color: Color(0xFF1F2933),
+                      fontSize: 26,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   const Text(
-                    'Aggressive wake-up protocols: Merciless AI meme roasts, '
-                    'peer camera bounties, and unskippable morning drill checks. '
-                    'Bed is the enemy.',
+                    'Choose how you want to wake up, then add a photo check-in '
+                    'so you start the day on track.',
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFF7C8C82),
-                      fontSize: 12,
-                      height: 1.6,
+                      color: Color(0xFF667085),
+                      fontSize: 14,
+                      height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 20),
 
-                  // SOUND FORGE
+                  // Alarm sound preview
                   CyberCard(
                     glow: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          '140 dB SOUND FORGE',
-                          trailing: 'FORGED',
+                          'Alarm sound',
+                          trailing: 'Ready',
                         ),
                         const SizedBox(height: 8),
                         const Waveform(
-                          color: Color(0xFFB6FF3B),
+                          color: Color(0xFF3D5AFE),
                           bars: 48,
                           height: 52,
                         ),
                         const MicroText(
-                          'BASS // ROAST // SIREN CASCADE READY',
-                          color: Color(0xFF00E5FF),
-                          fontSize: 9,
+                          'Pick a sound that gets you out of bed.',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -118,23 +113,22 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 18),
 
                   const MicroText(
-                    'LOGIN OPTIONS',
-                    color: Color(0xFF00E5FF),
-                    fontSize: 10,
-                    letterSpacing: 1.8,
+                    'Sign-in options',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
                   ),
                   const SizedBox(height: 10),
                   Row(
                     children: <Widget>[
                       Expanded(
                         child: NeonButton(
-                          label: 'Apple ID',
+                          label: 'Apple',
                           primary: false,
                           icon: Icons.apple,
                           height: 44,
-                          fontSize: 10,
+                          fontSize: 12,
                           onPressed: () =>
-                              _toast('APPLE ID LINK REQUESTED'),
+                              _toast('Apple sign in requested'),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -144,21 +138,21 @@ class _SetupScreenState extends State<SetupScreen> {
                           primary: false,
                           icon: Icons.g_mobiledata,
                           height: 44,
-                          fontSize: 10,
+                          fontSize: 12,
                           onPressed: () =>
-                              _toast('GOOGLE LINK REQUESTED'),
+                              _toast('Google sign in requested'),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: NeonButton(
-                          label: 'Cyberpass',
+                          label: 'Passcode',
                           primary: false,
                           icon: Icons.key,
                           height: 44,
-                          fontSize: 10,
+                          fontSize: 12,
                           onPressed: () =>
-                              _toast('CYBERPASS HANDSHAKE REQUESTED'),
+                              _toast('Passcode sign in requested'),
                         ),
                       ),
                     ],
@@ -166,10 +160,9 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 18),
 
                   const MicroText(
-                    'Runner Handle/Email',
-                    color: Color(0xFF00E5FF),
-                    fontSize: 10,
-                    letterSpacing: 1.6,
+                    'Name or email',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -177,17 +170,16 @@ class _SetupScreenState extends State<SetupScreen> {
                     decoration: const InputDecoration(
                       prefixIcon: Icon(
                         Icons.person_outline,
-                        color: Color(0xFFB6FF3B),
+                        color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
                     ),
                   ),
                   const SizedBox(height: 14),
                   const MicroText(
-                    'Dawn Security Passcode',
-                    color: Color(0xFF00E5FF),
-                    fontSize: 10,
-                    letterSpacing: 1.6,
+                    'Passcode',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -196,7 +188,7 @@ class _SetupScreenState extends State<SetupScreen> {
                     decoration: const InputDecoration(
                       prefixIcon: Icon(
                         Icons.lock_outline,
-                        color: Color(0xFFB6FF3B),
+                        color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
                     ),
@@ -204,8 +196,8 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 20),
 
                   const SectionLabel(
-                    'CHOOSE WAKE DISCIPLINE',
-                    trailing: 'SELECT ONE',
+                    'Choose your alarm style',
+                    trailing: 'One choice',
                   ),
                   const SizedBox(height: 10),
                   for (int i = 0; i < _disciplines.length; i++)
@@ -235,8 +227,7 @@ class _SetupScreenState extends State<SetupScreen> {
                                   color: _disciplineIndex == i
                                       ? CyberTheme.lime
                                       : CyberTheme.white,
-                                  fontSize: 11,
-                                  letterSpacing: 0.8,
+                                  fontSize: 14,
                                 ),
                               ),
                               Icon(
@@ -256,18 +247,18 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 14),
 
                   const SectionLabel(
-                    'MANDATORY CAMERA PROOF',
-                    trailing: 'REQUIRED',
+                    'Photo check-in',
+                    trailing: 'Required',
                   ),
                   const SizedBox(height: 10),
                   const _ProofRow(
                     icon: Icons.water_drop,
-                    text: 'Sink & Toothbrush Optical Scan',
+                    text: 'Photo of your sink and toothbrush',
                   ),
                   const SizedBox(height: 8),
                   const _ProofRow(
                     icon: Icons.accessibility_new,
-                    text: '20 Squats Cam (Pose-AI Sync)',
+                    text: '20 squats on camera',
                   ),
                   const SizedBox(height: 18),
 
@@ -276,21 +267,21 @@ class _SetupScreenState extends State<SetupScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: <Widget>[
                         MicroText(
-                          '48k Wake Streaks',
-                          color: Color(0xFFB6FF3B),
-                          fontSize: 9,
+                          '48k morning check-ins',
+                          color: Color(0xFF3D5AFE),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                         MicroText(
-                          '0% Snooze Black',
-                          color: Color(0xFF00E5FF),
-                          fontSize: 9,
+                          'No snoozes',
+                          color: Color(0xFF0F766E),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                         MicroText(
-                          'Sync Bio-Signal Link',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          'Sync your devices',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -298,8 +289,8 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                   const SizedBox(height: 20),
                   NeonButton(
-                    label: 'ENTER THE ARENA ⚡',
-                    icon: Icons.bolt,
+                    label: 'Finish setup',
+                    icon: Icons.check,
                     onPressed: widget.onEnter,
                   ),
                   const SizedBox(height: 16),
@@ -307,27 +298,27 @@ class _SetupScreenState extends State<SetupScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: <Widget>[
                       TextButton(
-                        onPressed: () => _toast('PRIVACY MANIFESTO'),
+                        onPressed: () => _toast('Privacy'),
                         child: const MicroText(
-                          'Privacy Manifesto',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 8,
+                          'Privacy',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                         ),
                       ),
                       TextButton(
-                        onPressed: () => _toast('AI SNOOZE PENALTIES'),
+                        onPressed: () => _toast('Snooze policy'),
                         child: const MicroText(
-                          'AI Snooze Penalties',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 8,
+                          'Snooze policy',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                         ),
                       ),
                       TextButton(
-                        onPressed: () => _toast('SUPPORT DECK'),
+                        onPressed: () => _toast('Support'),
                         child: const MicroText(
-                          'Support Deck',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 8,
+                          'Support',
+                          color: Color(0xFF667085),
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -358,9 +349,9 @@ class _ProofRow extends StatelessWidget {
           Icon(icon, color: CyberTheme.cyan, size: 18),
           const SizedBox(width: 12),
           Expanded(
-            child: MicroText(text, color: CyberTheme.white, fontSize: 10),
+            child: MicroText(text, color: CyberTheme.white, fontSize: 13),
           ),
-          const StatusChip('ON'),
+          const StatusChip('On'),
         ],
       ),
     );

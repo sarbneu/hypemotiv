@@ -1,9 +1,14 @@
-/// Screen 02 — active prime / dawn raid sprint command centre.
+/// Screen 02 — morning alarm dashboard.
 library;
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
+import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
@@ -39,18 +44,18 @@ class _Protocol {
 
 class _ArenaScreenState extends State<ArenaScreen> {
   static const String _fallbackSoundUrl =
-      'https://www.soundjay.com/alarms/sounds/bell-1.mp3';
+      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
 
   final List<_Protocol> _protocols = <_Protocol>[
     const _Protocol(
       time: '05:45 AM',
-      title: 'Cardio Drill',
-      subtitle: 'Hyper Iron Pumping',
+      title: 'Morning workout',
+      subtitle: 'Cardio and strength',
     ),
     const _Protocol(
       time: '07:15 AM',
-      title: 'Deep Focus',
-      subtitle: 'Code Sprint Ignition',
+      title: 'Focus time',
+      subtitle: 'Study session',
     ),
   ];
 
@@ -61,6 +66,27 @@ class _ArenaScreenState extends State<ArenaScreen> {
   void initState() {
     super.initState();
     _loadDrill();
+    _loadSavedAlarms();
+  }
+
+  static const String _alarmsKey = 'hypemotiv_alarms';
+
+  Future<void> _loadSavedAlarms() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> stored = prefs.getStringList(_alarmsKey) ?? const <String>[];
+    final List<_Protocol> restored = stored
+        .map((String line) => line.split('|'))
+        .where((List<String> parts) => parts.length == 3)
+        .map(
+          (List<String> parts) => _Protocol(
+            time: parts[0],
+            title: parts[1],
+            subtitle: parts[2],
+          ),
+        )
+        .toList();
+    if (!mounted || restored.isEmpty) return;
+    setState(() => _protocols.addAll(restored));
   }
 
   Future<void> _loadDrill() async {
@@ -87,8 +113,8 @@ class _ArenaScreenState extends State<ArenaScreen> {
     setState(() => _audioLoading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('AUDIO DRILL STREAMING // WAR VOLUME'),
-        backgroundColor: Color(0xFF111A15),
+        content: Text('Playing alarm sound'),
+        backgroundColor: Color(0xFFF2F4F7),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -100,7 +126,86 @@ class _ArenaScreenState extends State<ArenaScreen> {
       builder: (BuildContext dialogContext) => const _ProtocolDialog(),
     );
     if (created == null || !mounted) return;
+
     setState(() => _protocols.add(created));
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final List<String> stored =
+        List<String>.from(prefs.getStringList(_alarmsKey) ?? const <String>[]);
+    stored.add('${created.time}|${created.title}|${created.subtitle}');
+    await prefs.setStringList(_alarmsKey, stored);
+
+    final DateTime? scheduled = _parseClock(created.time);
+    if (scheduled != null) {
+      await NotificationService().scheduleAlarm(
+        when: scheduled.isBefore(DateTime.now())
+            ? scheduled.add(const Duration(days: 1))
+            : scheduled,
+        title: created.title,
+        body: created.subtitle.isEmpty ? 'Time to wake up' : created.subtitle,
+      );
+    }
+
+    if (!mounted) return;
+    _toast(
+      scheduled == null
+          ? 'Alarm saved (no valid time, so it was not scheduled)'
+          : 'Alarm saved for ${_formatDate(scheduled)}',
+    );
+  }
+
+  DateTime? _parseClock(String text) {
+    final RegExpMatch? match = RegExp(
+      r'^(\d{1,2}):(\d{2})\s*(AM|PM)$',
+      caseSensitive: false,
+    ).firstMatch(text.trim());
+    if (match == null) return null;
+    int hour = int.tryParse(match.group(1) ?? '') ?? -1;
+    final int minute = int.tryParse(match.group(2) ?? '') ?? -1;
+    final bool pm = (match.group(3) ?? '').toUpperCase() == 'PM';
+    if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+    if (hour == 12) hour = 0;
+    if (pm) hour += 12;
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day, hour, minute);
+  }
+
+  String _formatDate(DateTime value) =>
+      '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _checkIn() async {
+    final XFile? picked = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+    );
+    if (picked == null || !mounted) {
+      _toast('No photo taken');
+      return;
+    }
+    setState(() => _audioLoading = true);
+    final String? url = await HypeApi().uploadFile(
+      File(picked.path),
+      kind: 'proof',
+    );
+    if (!mounted) return;
+    setState(() => _audioLoading = false);
+    _toast(url == null ? 'Check-in saved on this device' : 'Check-in uploaded');
+  }
+
+  void _showSnoozePolicy() {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Snooze policy'),
+        content: const Text(
+          'Snoozing is off by default. To take five more minutes, complete 20 jumping jacks from the alarm screen first.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -115,7 +220,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const BrandHeader(
-                    status: 'ACTIVE PRIME',
+                    status: 'Good morning',
                     trailing: '12m to sleep',
                   ),
                   const SizedBox(height: 24),
@@ -125,24 +230,16 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          'DAWN RAID SPRINT',
-                          trailing: 'PRIME // 01',
+                          'Morning alarm',
+                          trailing: 'Up next',
                         ),
                         const SizedBox(height: 10),
                         const Text(
                           '06:30 AM',
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFFB6FF3B),
-                            fontSize: 48,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1,
-                            shadows: <Shadow>[
-                              Shadow(
-                                color: Color(0x55B6FF3B),
-                                blurRadius: 18,
-                              ),
-                            ],
+                            color: Color(0xFF3D5AFE),
+                            fontSize: 40,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -154,24 +251,24 @@ class _ArenaScreenState extends State<ArenaScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  color: Color(0xFFF4F8F3),
-                                  fontSize: 12,
+                                  color: Color(0xFF1F2933),
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
-                            const StatusChip('LIVE'),
+                            const StatusChip('On'),
                           ],
                         ),
                         const SizedBox(height: 8),
                         const Waveform(
-                          color: Color(0xFF00E5FF),
+                          color: Color(0xFF3D5AFE),
                           bars: 36,
                           height: 44,
                         ),
                         const SizedBox(height: 10),
                         NeonButton(
-                          label: _audioLoading ? 'LOADING DRILL...' : 'AUDIO DRILL',
+                          label:
+                              _audioLoading ? 'Loading...' : 'Play alarm sound',
                           icon: Icons.play_arrow,
                           onPressed: _playDrill,
                         ),
@@ -180,38 +277,36 @@ class _ArenaScreenState extends State<ArenaScreen> {
                           children: <Widget>[
                             Expanded(
                               child: NeonButton(
-                                label: 'Proof: Bathroom Shrink',
+                                label: 'Photo check-in',
                                 primary: false,
                                 icon: Icons.photo_camera,
                                 height: 46,
-                                fontSize: 10,
-                                onPressed: () => _toast(
-                                  'PROOF CAPTURE QUEUED // BATHROOM SHRINK',
-                                ),
+                                fontSize: 13,
+                                onPressed: _checkIn,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         NeonButton(
-                          label: 'NO SNOOZE ALLOWED',
+                          label: 'Snooze locked',
                           primary: false,
                           icon: Icons.lock,
                           height: 44,
-                          fontSize: 11,
-                          onPressed: () => _toast('SNOOZE PORT SEALED'),
+                          fontSize: 13,
+                          onPressed: _showSnoozePolicy,
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const SectionLabel('DISCIPLINE BENTO', trailing: 'LIVE STATS'),
+                  const SectionLabel('Today at a glance', trailing: 'Today'),
                   const SizedBox(height: 12),
                   Row(
                     children: <Widget>[
                       Expanded(
                         child: _BentoCard(
-                          value: '14 DAYS',
+                          value: '14-day streak',
                           caption: '+3 vs last month',
                           color: CyberTheme.lime,
                         ),
@@ -219,8 +314,8 @@ class _ArenaScreenState extends State<ArenaScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: _BentoCard(
-                          value: '0 SNOOZES',
-                          caption: 'Pure Discipline',
+                          value: 'No snoozes',
+                          caption: 'Keep it up',
                           color: CyberTheme.cyan,
                         ),
                       ),
@@ -228,14 +323,14 @@ class _ArenaScreenState extends State<ArenaScreen> {
                   ),
                   const SizedBox(height: 10),
                   _BentoCard(
-                    value: 'DOPAMINE SHIELD',
-                    caption: 'BLOCKED',
-                    color: CyberTheme.danger,
+                    value: 'Distraction blocking: on',
+                    caption: 'Focus mode is active',
+                    color: const Color(0xFF12B76A),
                   ),
                   const SizedBox(height: 24),
                   const SectionLabel(
-                    'SCHEDULED PROTOCOLS',
-                    trailing: 'AUTO-ARMED',
+                    'Scheduled alarms',
+                    trailing: 'Enabled',
                   ),
                   const SizedBox(height: 12),
                   for (final _Protocol protocol in _protocols)
@@ -254,23 +349,22 @@ class _ArenaScreenState extends State<ArenaScreen> {
                                 MicroText(
                                   protocol.time,
                                   color: CyberTheme.lime,
-                                  fontSize: 11,
+                                  fontSize: 13,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   protocol.title,
                                   style: const TextStyle(
-                                    fontFamily: 'monospace',
-                                    color: Color(0xFFF4F8F3),
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1F2933),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 MicroText(
                                   protocol.subtitle,
                                   color: CyberTheme.muted,
-                                  fontSize: 9,
+                                  fontSize: 12,
                                 ),
                               ],
                             ),
@@ -298,7 +392,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
                     ),
                   const SizedBox(height: 6),
                   NeonButton(
-                    label: '+ CREATE NEW PROTOCOL',
+                    label: '+ Add alarm',
                     icon: Icons.add,
                     onPressed: _createProtocol,
                   ),
@@ -316,7 +410,7 @@ class _ArenaScreenState extends State<ArenaScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
+        backgroundColor: CyberTheme.panel,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -340,13 +434,12 @@ class _BentoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          MicroText(value, color: color, fontSize: 15, letterSpacing: 1),
+          MicroText(value, color: color, fontSize: 15),
           const SizedBox(height: 6),
           MicroText(
             caption,
             color: CyberTheme.muted,
-            fontSize: 9,
-            letterSpacing: 0.8,
+            fontSize: 12,
           ),
         ],
       ),
@@ -366,10 +459,10 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
     text: '06:00 AM',
   );
   final TextEditingController _titleController = TextEditingController(
-    text: 'New Drill',
+    text: 'New alarm',
   );
   final TextEditingController _subtitleController = TextEditingController(
-    text: 'Iron Discipline Protocol',
+    text: 'Morning routine',
   );
 
   @override
@@ -385,38 +478,37 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
     return AlertDialog(
       backgroundColor: CyberTheme.panel,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFF1E2A22)),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: CyberTheme.line),
       ),
       title: const MicroText(
-        'NEW PROTOCOL',
-        color: Color(0xFFB6FF3B),
-        fontSize: 13,
-        letterSpacing: 2,
+        'Add an alarm',
+        color: Color(0xFF1F2933),
+        fontSize: 16,
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           TextField(
             controller: _timeController,
-            decoration: const InputDecoration(labelText: 'TIME (HH:MM AM)'),
+            decoration: const InputDecoration(labelText: 'Time (HH:MM AM)'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'PROTOCOL NAME'),
+            decoration: const InputDecoration(labelText: 'Alarm name'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _subtitleController,
-            decoration: const InputDecoration(labelText: 'DRILL DETAIL'),
+            decoration: const InputDecoration(labelText: 'Note'),
           ),
         ],
       ),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const MicroText('CANCEL', color: Color(0xFF7C8C82)),
+          child: const MicroText('Cancel', color: Color(0xFF667085)),
         ),
         TextButton(
           onPressed: () {
@@ -432,7 +524,7 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
               ),
             );
           },
-          child: const MicroText('ARM PROTOCOL', color: Color(0xFFB6FF3B)),
+          child: const MicroText('Save', color: Color(0xFF3D5AFE)),
         ),
       ],
     );

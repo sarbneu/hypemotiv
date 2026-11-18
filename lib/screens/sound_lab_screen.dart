@@ -1,4 +1,4 @@
-/// Screen 03 — audio lab, viral ripper, soundboard and roast vault.
+/// Screen 03 — sound library, audio extraction and recordings.
 library;
 
 import 'dart:async';
@@ -69,7 +69,7 @@ class SoundLabScreen extends StatefulWidget {
 
 class _SoundLabScreenState extends State<SoundLabScreen> {
   static const String _fallbackSoundUrl =
-      'https://www.soundjay.com/alarms/sounds/siren-1.mp3';
+      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
   static const String _demoRipUrl =
       'https://media.hypemotiv.app/rips/dawn-roast-060.mp3';
 
@@ -108,7 +108,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: CyberTheme.panelAlt,
+        backgroundColor: CyberTheme.panel,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -129,7 +129,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   Future<void> _rip() async {
     final String url = _ripController.text.trim();
     if (url.isEmpty) {
-      _toast('PASTE A TIKTOK / REELS URL FIRST');
+      _toast('Paste a link first');
       return;
     }
     setState(() => _ripBusy = true);
@@ -139,7 +139,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
       _ripUrl = result ?? _demoRipUrl;
       _ripBusy = false;
     });
-    _toast(result == null ? 'OFFLINE RIP // DEMO DROP LOADED' : 'AUDIO RIP READY');
+    _toast(result == null ? 'Demo audio loaded' : 'Audio extracted');
   }
 
   Future<void> _preview(String? url) async {
@@ -148,19 +148,19 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     } catch (_) {
       // Audio failures never reach the UI.
     }
-    _toast('PREVIEW DROP // PLAYING');
+    _toast('Playing preview');
   }
 
   Future<void> _saveToAlarm() async {
     final String url = _ripUrl ?? _fallbackSoundUrl;
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kSavedAlarmKey, url);
-    _toast('SAVED TO ALARM // DISCIPLINE BANK SYNCED');
+    _toast('Saved as your alarm sound');
   }
 
   Future<void> _speak(String text) async {
     if (text.trim().isEmpty) {
-      _toast('TYPE A ROAST FIRST');
+      _toast('Write a message first');
       return;
     }
     try {
@@ -189,7 +189,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
       type: FileType.audio,
     );
     if (picked.isEmpty || picked.first.path == null || !mounted) {
-      _toast('NO ROAST CAPTURED');
+      _toast('No recording selected');
       return;
     }
 
@@ -200,7 +200,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     );
     if (!mounted) return;
     setState(() => _uploadBusy = false);
-    _toast(url == null ? 'OFFLINE // ROAST KEPT ON DEVICE' : 'ROAST UPLOADED');
+    _toast(url == null ? 'Recording saved on device' : 'Recording uploaded');
   }
 
   @override
@@ -215,39 +215,36 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   const BrandHeader(
-                    status: 'AUDIO LAB v2.4',
-                    trailing: 'SYS // ONLINE',
+                    status: 'Sound library',
+                    trailing: 'Ready',
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'SOUND LAB & MEME HUB',
+                    'Sound library',
                     style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: Color(0xFFB6FF3B),
+                      color: Color(0xFF1F2933),
                       fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 22),
 
-                  // VIRAL DROP RIPPER
+                  // Extract audio from a video
                   CyberCard(
                     glow: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         const SectionLabel(
-                          'VIRAL DROP RIPPER',
-                          trailing: 'BETA',
+                          'Extract audio from a video',
+                          trailing: 'Optional',
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Rip TikTok, Reels or brutal accountability roasts',
+                          'Paste a TikTok, Reels or YouTube link',
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFF7C8C82),
-                            fontSize: 11,
+                            color: Color(0xFF667085),
+                            fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -257,14 +254,14 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                             hintText: 'https://tiktok.com/@runner/video/...',
                             prefixIcon: Icon(
                               Icons.link,
-                              color: Color(0xFF00E5FF),
+                              color: Color(0xFF0F766E),
                               size: 18,
                             ),
                           ),
                         ),
                         const SizedBox(height: 10),
                         NeonButton(
-                          label: _ripBusy ? 'RIPPING...' : 'RIP AUDIO',
+                          label: _ripBusy ? 'Extracting...' : 'Extract audio',
                           icon: Icons.content_cut,
                           onPressed: _rip,
                         ),
@@ -276,20 +273,20 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                               children: <Widget>[
                                 MicroText(
                                   _ripUrl!,
-                                  color: Color(0xFF00E5FF),
-                                  fontSize: 9,
+                                  color: Color(0xFF0F766E),
+                                  fontSize: 12,
                                   maxLines: 2,
                                 ),
                                 const SizedBox(height: 8),
                                 const Waveform(
-                                  color: Color(0xFFB6FF3B),
+                                  color: Color(0xFF3D5AFE),
                                   bars: 32,
                                   height: 42,
                                 ),
                                 const MicroText(
                                   '00:06.20',
-                                  color: Color(0xFF7C8C82),
-                                  fontSize: 9,
+                                  color: Color(0xFF667085),
+                                  fontSize: 12,
                                   textAlign: TextAlign.right,
                                 ),
                               ],
@@ -300,21 +297,21 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                             children: <Widget>[
                               Expanded(
                                 child: NeonButton(
-                                  label: 'PREVIEW DROP',
+                                  label: 'Preview',
                                   icon: Icons.play_arrow,
                                   height: 44,
-                                  fontSize: 10,
+                                  fontSize: 13,
                                   onPressed: () => _preview(_ripUrl),
                                 ),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: NeonButton(
-                                  label: 'SAVE TO ALARM',
+                                  label: 'Save to alarm',
                                   primary: false,
                                   icon: Icons.alarm_add,
                                   height: 44,
-                                  fontSize: 10,
+                                  fontSize: 13,
                                   onPressed: _saveToAlarm,
                                 ),
                               ),
@@ -326,20 +323,20 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // VIRAL MEME SOUNDBOARD
+                  // Popular sounds
                   const SectionLabel(
-                    'VIRAL MEME SOUNDBOARD',
-                    trailing: '100,000+',
+                    'Popular sounds',
+                    trailing: 'Browse',
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: _searchController,
                     onChanged: _loadSounds,
                     decoration: const InputDecoration(
-                      hintText: 'Search 100,000+ sounds...',
+                      hintText: 'Search sounds',
                       prefixIcon: Icon(
                         Icons.search,
-                        color: Color(0xFFB6FF3B),
+                        color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
                     ),
@@ -348,8 +345,8 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   if (_searching)
                     const LinearProgressIndicator(
                       minHeight: 2,
-                      color: Color(0xFFB6FF3B),
-                      backgroundColor: Color(0xFF1E2A22),
+                      color: Color(0xFF3D5AFE),
+                      backgroundColor: Color(0xFFE4E7EC),
                     ),
                   const SizedBox(height: 8),
                   GridView.builder(
@@ -381,19 +378,18 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontFamily: 'monospace',
-                                color: Color(0xFFF4F8F3),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1F2933),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             const SizedBox(height: 8),
                             GestureDetector(
                               onTap: () => _preview(sound.url),
                               child: const MicroText(
-                                '▶ TAP TO PLAY',
-                                color: Color(0xFF00E5FF),
-                                fontSize: 9,
+                                'Play',
+                                color: Color(0xFF3D5AFE),
+                                fontSize: 12,
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -404,9 +400,9 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                                 );
                               },
                               child: const MicroText(
-                                'SET AS ALARM',
-                                color: Color(0xFFB6FF3B),
-                                fontSize: 9,
+                                'Use as alarm',
+                                color: Color(0xFF0F766E),
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -416,10 +412,10 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // VOICE ROAST VAULT
+                  // Voice recordings
                   const SectionLabel(
-                    'VOICE ROAST VAULT',
-                    trailing: 'TTS ONLINE',
+                    'Voice recordings',
+                    trailing: 'Ready',
                   ),
                   const SizedBox(height: 10),
                   CyberCard(
@@ -427,19 +423,18 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: <Widget>[
                         const MicroText(
-                          'GYM BUDDY RECORDER',
-                          color: Color(0xFF00E5FF),
-                          fontSize: 11,
-                          letterSpacing: 2,
+                          'Record a message',
+                          color: Color(0xFF667085),
+                          fontSize: 13,
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          'Send customized morning wake-up insult to Jake.',
+                          'Record a short message to play when your alarm '
+                          'goes off.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontFamily: 'monospace',
-                            color: Color(0xFF7C8C82),
-                            fontSize: 11,
+                            color: Color(0xFF667085),
+                            fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -450,12 +445,12 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            width: 104,
-                            height: 104,
+                            width: 112,
+                            height: 112,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: _recording
-                                  ? CyberTheme.danger.withValues(alpha: 0.18)
+                                  ? CyberTheme.danger.withValues(alpha: 0.10)
                                   : CyberTheme.lime.withValues(alpha: 0.08),
                               border: Border.all(
                                 color: _recording
@@ -463,28 +458,19 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                                     : CyberTheme.lime,
                                 width: 2,
                               ),
-                              boxShadow: <BoxShadow>[
-                                BoxShadow(
-                                  color: (_recording
-                                          ? CyberTheme.danger
-                                          : CyberTheme.lime)
-                                      .withValues(alpha: 0.24),
-                                  blurRadius: 22,
-                                ),
-                              ],
                             ),
                             child: Center(
                               child: MicroText(
                                 _uploadBusy
-                                    ? 'UPLOADING'
+                                    ? 'Uploading'
                                     : _recording
-                                        ? 'RECORDING...'
-                                        : 'HOLD',
+                                        ? 'Recording'
+                                        : 'Hold to record',
                                 color: _recording
                                     ? CyberTheme.danger
                                     : CyberTheme.lime,
-                                fontSize: 11,
-                                letterSpacing: 1.4,
+                                fontSize: 12,
+                                textAlign: TextAlign.center,
                               ),
                             ),
                           ),
@@ -494,31 +480,31 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                           controller: _roastController,
                           maxLines: 2,
                           decoration: const InputDecoration(
-                            hintText: 'Write the insult Jake deserves...',
+                            hintText: 'Write your message...',
                           ),
                         ),
                         const SizedBox(height: 10),
                         NeonButton(
-                          label: 'SPEAK ROAST',
+                          label: 'Play message',
                           primary: false,
                           icon: Icons.record_voice_over,
                           onPressed: () => _speak(_roastController.text),
                         ),
                         const SizedBox(height: 16),
                         const MicroText(
-                          'PRE-BUILT ROAST PACKS',
-                          color: Color(0xFF7C8C82),
-                          fontSize: 9,
+                          'Suggested messages',
+                          color: Color(0xFF667085),
+                          fontSize: 13,
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: <Widget>[
                             Expanded(
                               child: NeonButton(
-                                label: 'Drill Sergeant Scream',
+                                label: 'Firm reminder',
                                 primary: false,
                                 height: 44,
-                                fontSize: 9,
+                                fontSize: 12,
                                 onPressed: () => _speak(
                                   'Drop and give me twenty! Sleep is for the weak!',
                                 ),
@@ -527,10 +513,10 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: NeonButton(
-                                label: 'Sarcastic Best Friend',
+                                label: 'Friendly nudge',
                                 primary: false,
                                 height: 44,
-                                fontSize: 9,
+                                fontSize: 12,
                                 onPressed: () => _speak(
                                   'Oh look, you overslept again. Groundbreaking.',
                                 ),
@@ -554,6 +540,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   Future<void> _saveSoundToAlarm(String url) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kSavedAlarmKey, url);
-    _toast('SET AS ALARM // ROAST BANK UPDATED');
+    _toast('Saved as your alarm sound');
   }
 }

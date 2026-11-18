@@ -1,10 +1,12 @@
-/// Main dashboard shell with the four-tab cyberpunk navigation.
+/// Main dashboard shell with five navigation tabs (including Sleep tracking).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/screens/alarm_active_screen.dart';
 import 'package:hypemotiv/screens/arena_screen.dart';
 import 'package:hypemotiv/screens/sleep_matrix_screen.dart';
+import 'package:hypemotiv/screens/sleep_tracking_screen.dart';
+import 'package:hypemotiv/screens/more_screen.dart';
 import 'package:hypemotiv/screens/sound_lab_screen.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
@@ -23,6 +25,8 @@ class _MainScreenState extends State<MainScreen> {
     SoundLabScreen(),
     AlarmActiveScreen(),
     SleepMatrixScreen(),
+    SleepTrackingScreen(),
+    MoreScreen(),
   ];
 
   @override
@@ -64,6 +68,14 @@ class _MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.bar_chart),
             label: 'STATS',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bedtime_outlined),
+            label: 'SLEEP',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.more_horiz),
+            label: 'MORE',
           ),
         ],
       ),

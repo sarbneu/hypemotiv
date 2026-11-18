@@ -617,6 +617,45 @@ app.post('/api/quotes', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// CORS audio proxy. audioplayers on Flutter Web sets crossOrigin=anonymous;
+// myinstants.com does not send Access-Control-Allow-Origin, so remote MP3s
+// would be blocked in the browser. Only known audio hosts are allowed.
+// ---------------------------------------------------------------------------
+const AUDIO_PROXY_HOSTS = new Set([
+  'www.myinstants.com',
+  'myinstants.com',
+  'localhost',
+  '127.0.0.1',
+]);
+app.get('/api/sounds/proxy', async (req, res) => {
+  let target;
+  try {
+    target = new URL(String(req.query.url || ''));
+  } catch (_) {
+    return res.status(400).json({ error: 'A valid url query parameter is required' });
+  }
+  if (!['http:', 'https:'].includes(target.protocol) ||
+      !AUDIO_PROXY_HOSTS.has(target.hostname)) {
+    return res.status(403).json({ error: 'Audio host is not allowed' });
+  }
+  try {
+    const upstream = await fetch(target, {
+      headers: { 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!upstream.ok) return res.status(502).json({ error: `Upstream HTTP ${upstream.status}` });
+    const bytes = Buffer.from(await upstream.arrayBuffer());
+    res.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
+    res.set('Content-Length', String(bytes.length));
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Cache-Control', 'public, max-age=86400');
+    return res.send(bytes);
+  } catch (err) {
+    return res.status(502).json({ error: 'Could not fetch audio', details: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // NEW: myinstants.com live sound search
 // ---------------------------------------------------------------------------
 app.get('/api/sounds', async (req, res) => {

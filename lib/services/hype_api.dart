@@ -13,6 +13,7 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../utils/oracle_config.dart';
@@ -24,6 +25,16 @@ class HypeApi {
   HypeApi._internal();
 
   static String get base => OracleConfig.apiBaseUrl;
+
+  /// On Flutter Web, audioplayers sets crossOrigin=anonymous. myinstants.com
+  /// has no CORS header, so route its media through our backend proxy.
+  /// Native platforms play the direct URL (works even with no backend).
+  static String playableUrl(String url) {
+    if (!kIsWeb) return url;
+    final Uri? uri = Uri.tryParse(url);
+    if (uri == null || uri.host != 'www.myinstants.com') return url;
+    return '$base/sounds/proxy?url=${Uri.encodeComponent(url)}';
+  }
 
   static const Duration _timeout = Duration(seconds: 20);
 
