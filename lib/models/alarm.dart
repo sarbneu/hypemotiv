@@ -3,7 +3,7 @@ class Alarm {
   final String id;
   final String title;
   final DateTime scheduledTime;
-  final String audioUrl; // Local path or URL to meme audio
+  final String audioUrl;
   final bool enabled;
   final DateTime createdAt;
 
@@ -13,8 +13,8 @@ class Alarm {
     required this.scheduledTime,
     required this.audioUrl,
     this.enabled = true,
-    this.createdAt = defaultTimestamp,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   static DateTime get defaultTimestamp => DateTime.now();
 

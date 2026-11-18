@@ -6,7 +6,7 @@ class Task {
   final bool completed;
   final DateTime? completedAt;
 
-  Task({
+  const Task({
     required this.id,
     required this.title,
     required this.emoji,
@@ -34,5 +34,16 @@ class Task {
       'completed': completed,
       'completedAt': completedAt?.toIso8601String(),
     };
+  }
+
+  /// Create a copy of this Task with the given fields replaced.
+  Task copyWith({String? id, String? title, String? emoji, bool? completed, DateTime? completedAt}) {
+    return Task(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      emoji: emoji ?? this.emoji,
+      completed: completed ?? this.completed,
+      completedAt: completedAt ?? this.completedAt,
+    );
   }
 }

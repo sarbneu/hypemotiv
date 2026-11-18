@@ -20,11 +20,13 @@ dependencies:
   flutter_tts: ^4.2.3
 
   # Audio playback
-  speakers: ^4.0.1
+  audioplayers: ^6.0.0-beta.12
+  audio_session: ^0.2.4
 
   # File system access
   path_provider: ^2.1.5
-  file_picker: ^8.0.0+1
+  file_picker: ^13.4.0
+  image_picker: ^1.1.1
 
   # Simple settings storage
   shared_preferences: ^2.2.0

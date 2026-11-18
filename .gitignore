@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Node backend (Oracle REST bridge)
+node_modules/
+.env
+oracle-backend/uploads/
+oracle-backend/outbox.log

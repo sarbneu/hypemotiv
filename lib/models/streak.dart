@@ -1,9 +1,9 @@
 /// Streak tracking model - tracks consecutive days of app usage.
 class Streak {
   final String userId;
-  final int currentStreak;     // Current consecutive active days
-  final int longestStreak;     // Longest streak ever
-  final DateTime? lastActive;  // Last time the user was active
+  final int currentStreak;
+  final int longestStreak;
+  final DateTime? lastActive;
   final DateTime createdAt;
 
   Streak({
@@ -11,8 +11,8 @@ class Streak {
     this.currentStreak = 0,
     this.longestStreak = 0,
     this.lastActive,
-    this.createdAt = defaultTimestamp,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   static DateTime get defaultTimestamp => DateTime.now();
 
@@ -37,6 +37,22 @@ class Streak {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : defaultTimestamp,
+    );
+  }
+
+  /// Create a copy of this Streak with the given fields replaced.
+  Streak copyWith({
+    String? userId,
+    int? currentStreak,
+    int? longestStreak,
+    DateTime? lastActive,
+  }) {
+    return Streak(
+      userId: userId ?? this.userId,
+      currentStreak: currentStreak ?? this.currentStreak,
+      longestStreak: longestStreak ?? this.longestStreak,
+      lastActive: lastActive ?? this.lastActive,
+      createdAt: createdAt,
     );
   }
 }

@@ -1,10 +1,14 @@
 /// Sleep tracking service - simulates circadian rhythm analysis and sleep stage tracking.
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/sleep_session.dart';
-import 'package:hive/hive';
 
 class SleepTrackingService {
   static const String boxName = 'sleep_sessions';
-  final _box = Hive.box<SleepSession>(boxName);
+  late Box<SleepSession> _box;
+
+  SleepTrackingService() {
+    _box = Hive.box<SleepSession>(boxName);
+  }
 
   /// Record a new sleep session (simulates microphone analysis).
   Future<void> recordSleepSession({
@@ -35,7 +39,7 @@ class SleepTrackingService {
 
   /// Calculate average sleep duration over a period.
   Duration getAverageSleepDuration({int days = 30}) {
-    final history = getSleepHistory(days: days);
+    final history = getSleepHistory(limit: days);
     if (history.isEmpty) return Duration.zero;
 
     final total = history.fold<int>(0, (sum, s) => sum + s.duration.inSeconds);
@@ -44,12 +48,12 @@ class SleepTrackingService {
 
   /// Calculate sleep consistency index (SCI) - 0-100 score.
   int getSleepConsistencyIndex() {
-    final history = getSleepHistory(days: 30);
+    final history = getSleepHistory(limit: 30);
     if (history.isEmpty) return 0;
 
     final now = DateTime.now();
     int consistentDays = 0;
-    int? prevEnd;
+    DateTime? prevEnd;
 
     for (final session in history) {
       if (prevEnd != null) {

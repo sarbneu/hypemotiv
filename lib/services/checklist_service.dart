@@ -1,19 +1,22 @@
 /// Checklist service - manages the 5-task daily checklist.
-import 'dart:collection';
-import 'package:hive/hive';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/task.dart';
 
 class ChecklistService {
   static const String boxName = 'checklist';
   static const int _totalTasks = 5;
 
-  final _box = Hive.box<Task>(boxName);
+  late Box<Task> _box;
+
+  ChecklistService() {
+    _box = Hive.box<Task>(boxName);
+  }
 
   /// Seed the 5 default tasks for the day.
   Future<void> seedDailyChecklist() async {
     final currentDate = DateTime.now().formatYmd();
     final tasks = _getDefaultTasks();
-    final todayBox = Hive.box<Task>('_day_${currentDate}');
+    final todayBox = await _getOrCreateDailyBox(currentDate);
 
     // Check if already seeded for today
     if (todayBox.isEmpty) {
@@ -38,9 +41,9 @@ class ChecklistService {
     await _box.put(taskId, updated);
   }
 
-  List<Task> getTodayTasks() {
+  Future<List<Task>> getTodayTasks() async {
     final today = DateTime.now().formatYmd();
-    final todayBox = Hive.box<Task>('_day_${today}');
+    final todayBox = await Hive.openBox<Task>('_day_${today}');
     return todayBox.values.cast<Task>().toList();
   }
 
@@ -66,6 +69,11 @@ class ChecklistService {
       Task(id: 'drink', title: 'Drink 2 liters of water', emoji: '💧'),
       Task(id: 'clean', title: 'Tidy up my space', emoji: '🧹'),
     ];
+  }
+
+  /// Get or create a daily box for the given date.
+  Future<Box<Task>> _getOrCreateDailyBox(String date) async {
+    return Hive.openBox<Task>('_day_${date}');
   }
 }
 

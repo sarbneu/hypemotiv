@@ -24,8 +24,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Future<void> _loadTasks() async {
     await _checklistService.seedDailyChecklist();
     if (mounted) {
+      final tasks = await _checklistService.getTodayTasks();
       setState(() {
-        _tasks = _checklistService.getTodayTasks();
+        _tasks = tasks;
         _isLoading = false;
       });
     }
@@ -34,8 +35,9 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
   Future<void> _toggleTask(Task task) async {
     await _checklistService.toggleTask(task.id);
     if (mounted) {
+      final tasks = await _checklistService.getTodayTasks();
       setState(() {
-        _tasks = _checklistService.getTodayTasks();
+        _tasks = tasks;
       });
     }
   }
@@ -61,7 +63,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          color: Colors.yellow.withValues(0.1),
+          color: Colors.yellow.withOpacity(0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -85,7 +87,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               final task = _tasks[index];
               return Card(
                 color: task.completed
-                    ? Colors.green.withValues(0.1)
+                    ? Colors.green.withOpacity(0.1)
                     : const Color(0xFF1E1E1E),
                 child: ListTile(
                   leading: Container(
@@ -93,8 +95,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: task.completed
-                          ? Colors.green.withValues(0.2)
-                          : Colors.yellow.withValues(0.2),
+                          ? Colors.green.withOpacity(0.2)
+                          : Colors.yellow.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(

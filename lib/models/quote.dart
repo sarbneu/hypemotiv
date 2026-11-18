@@ -9,8 +9,8 @@ class Quote {
     required this.id,
     required this.text,
     required this.author,
-    this.createdAt = defaultTimestamp,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   static DateTime get defaultTimestamp => DateTime.now();
 

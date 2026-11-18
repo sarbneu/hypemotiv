@@ -1,5 +1,5 @@
 /// Hive type adapter for SleepSession model.
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/sleep_session.dart';
 
 class SleepSessionAdapter extends TypeAdapter<SleepSession> {

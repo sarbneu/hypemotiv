@@ -1,5 +1,6 @@
 /// Quote generator service - generates motivational quotes for text-to-speech.
 import 'dart:math';
+
 import 'package:hypemotiv/models/quote.dart';
 
 class QuoteService {
@@ -104,4 +105,12 @@ class QuoteService {
 
   /// Get all available quotes (for reference).
   List<Map<String, String>> getAllQuotes() => List.from(_quotes);
+}
+
+/// Quote service initialization.
+extension QuoteServiceInit on QuoteService {
+  /// Initialize the quote service.
+  static Future<void> init() async {
+    // Nothing to initialize for quote service
+  }
 }

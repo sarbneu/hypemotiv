@@ -1,10 +1,14 @@
 /// Streak service - tracks consecutive active days.
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/streak.dart';
-import 'package:hive/hive';
 
 class StreakService {
   static const String boxName = 'streaks';
-  final _box = Hive.box<Streak>(boxName);
+  late Box<Streak> _box;
+
+  StreakService() {
+    _box = Hive.box<Streak>(boxName);
+  }
 
   String _currentUserId() => 'default_user';
 

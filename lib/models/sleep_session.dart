@@ -17,8 +17,8 @@ class SleepSession {
     this.sleepStages = 0,
     this.restless = false,
     this.notes = '',
-    this.createdAt = defaultTimestamp,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   static DateTime get defaultTimestamp => DateTime.now();
 

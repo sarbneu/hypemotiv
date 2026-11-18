@@ -1,11 +1,15 @@
 /// Alarm service - manages alarm scheduling and lifecycle.
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/alarm.dart';
-import 'package:hive/hive';
-import 'package:flutter/cupertino.dart;
+import 'package:flutter/cupertino.dart';
 
 class AlarmService {
   static const String boxName = 'alarms';
-  final _box = Hive.box<Alarm>(boxName);
+  late Box<Alarm> _box;
+
+  AlarmService() {
+    _box = Hive.box<Alarm>(boxName);
+  }
 
   /// Save a new alarm.
   Future<void> saveAlarm(Alarm alarm) async {

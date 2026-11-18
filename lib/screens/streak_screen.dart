@@ -63,7 +63,7 @@ class _StreakScreenState extends State<StreakScreen> {
 
   Widget _buildStreakCard() {
     return Card(
-      color: Colors.yellow.withValues(0.2),
+      color: Colors.yellow.withOpacity(0.2),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -164,10 +164,10 @@ class _StreakScreenState extends State<StreakScreen> {
           color: const Color(0xFF1E1E1E),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.yellow.withValues(0.2),
-              child: Text(c['emoji']!, style: const TextStyle(fontSize: 18)),
+              backgroundColor: Colors.yellow.withOpacity(0.2),
+              child: Text(c['emoji'] as String? ?? '', style: const TextStyle(fontSize: 18)),
             ),
-            title: Text(c['title']!, style: const TextStyle(color: Colors.white)),
+            title: Text(c['title'] as String? ?? '', style: const TextStyle(color: Colors.white)),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,

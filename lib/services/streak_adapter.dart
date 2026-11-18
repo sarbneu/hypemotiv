@@ -1,5 +1,5 @@
 /// Hive type adapter for Streak model.
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/streak.dart';
 
 class StreakAdapter extends TypeAdapter<Streak> {
@@ -12,18 +12,23 @@ class StreakAdapter extends TypeAdapter<Streak> {
       ..writeString(obj.userId)
       ..writeInt(obj.currentStreak)
       ..writeInt(obj.longestStreak)
-      ..writeNullableString(obj.lastActive?.toIso8601String())
+      ..writeString(obj.lastActive?.toIso8601String() ?? '')
       ..writeString(obj.createdAt.toIso8601String());
   }
 
   @override
   Streak read(BinaryReader reader) {
+    final userId = reader.readString();
+    final currentStreak = reader.readInt();
+    final longestStreak = reader.readInt();
+    final lastActiveStr = reader.readString();
+    final createdAtStr = reader.readString();
     return Streak(
-      userId: reader.readString(),
-      currentStreak: reader.readInt(),
-      longestStreak: reader.readInt(),
-      lastActive: reader.readNullableString()?.let((s) => DateTime.parse(s)),
-      createdAt: DateTime.parse(reader.readString()),
+      userId: userId,
+      currentStreak: currentStreak,
+      longestStreak: longestStreak,
+      lastActive: lastActiveStr.isNotEmpty ? DateTime.parse(lastActiveStr) : null,
+      createdAt: DateTime.parse(createdAtStr),
     );
   }
 }

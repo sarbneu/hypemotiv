@@ -1,17 +1,20 @@
 /// Hive box initialization helper.
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:hypemotiv/models/alarm.dart';
 import 'package:hypemotiv/models/task.dart';
+import 'package:hypemotiv/models/alarm.dart';
 import 'package:hypemotiv/models/streak.dart';
 import 'package:hypemotiv/models/sleep_session.dart';
+import 'package:hypemotiv/services/task_adapter.dart';
+import 'package:hypemotiv/services/alarm_adapter.dart';
+import 'package:hypemotiv/services/streak_adapter.dart';
+import 'package:hypemotiv/services/sleep_session_adapter.dart';
 
 class HiveInitializer {
   static Future<void> init() async {
-    // Ensure Hive is initialized with Flutter
+    // Initialize Hive
     await Hive.initFlutter();
 
-    // Register adapters
+    // Register adapters (create instances)
     Hive.registerAdapter(TaskAdapter());
     Hive.registerAdapter(AlarmAdapter());
     Hive.registerAdapter(StreakAdapter());
