@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
+import 'package:hypemotiv/services/custom_sound_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/sound_service.dart';
 import 'package:hypemotiv/services/tts_service.dart';
@@ -80,6 +81,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   String _voiceCharacter = 'Calm';
 
   List<Sound> _sounds = _featuredSounds;
+  List<CustomSound> _customSounds = const <CustomSound>[];
   String? _ripUrl;
   bool _ripBusy = false;
   bool _searching = false;
@@ -92,6 +94,7 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     super.initState();
     unawaited(_tts.init());
     unawaited(_loadSounds(''));
+    unawaited(_loadCustom());
   }
 
   @override
@@ -113,6 +116,23 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _loadCustom() async {
+    final List<CustomSound> sounds = await CustomSoundService().list();
+    if (!mounted) return;
+    setState(() => _customSounds = sounds);
+  }
+
+  Future<void> _addCustom() async {
+    final CustomSound? sound = await CustomSoundService().pickAndSave();
+    if (!mounted) return;
+    if (sound == null) {
+      _toast('No audio file selected');
+      return;
+    }
+    await _loadCustom();
+    _toast('${sound.name} added');
   }
 
   Future<void> _loadSounds(String query) async {
@@ -411,6 +431,52 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                       );
                     },
                   ),
+                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 24),
+                  const SectionLabel(
+                    'Your sounds',
+                    trailing: 'On this phone',
+                  ),
+                  const SizedBox(height: 10),
+                  NeonButton(
+                    label: 'Add custom sound from phone',
+                    icon: Icons.add_circle_outline,
+                    onPressed: _addCustom,
+                  ),
+                  if (_customSounds.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 10),
+                    ..._customSounds.map(
+                      (CustomSound sound) => CyberCard(
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.audiotrack, color: Color(0xFF3D5AFE)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                sound.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Play',
+                              icon: const Icon(Icons.play_arrow),
+                              onPressed: () => AudioService().play(sound.path),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () async {
+                                await CustomSoundService().delete(sound);
+                                await _loadCustom();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
 
                   // Voice recordings

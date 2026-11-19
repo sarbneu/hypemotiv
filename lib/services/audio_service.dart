@@ -82,6 +82,9 @@ class AudioService {
           throw StateError('Audio HTTP ${response.statusCode}');
         }
         await _audioPlayer.setSourceBytes(response.bodyBytes);
+      } else if (source.startsWith('/')) {
+        // Custom sounds saved by CustomSoundService on the device.
+        await _audioPlayer.setSourceDeviceFile(source);
       } else {
         await _audioPlayer.setSourceUrl(playable);
       }

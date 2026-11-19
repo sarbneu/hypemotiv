@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hypemotiv/services/audio_service.dart';
+import 'package:hypemotiv/services/custom_sound_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
@@ -497,6 +498,30 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
   );
   int _soundIndex = 0;
   int _voiceIndex = 0;
+  List<Map<String, String>> _soundOptions =
+      List<Map<String, String>>.from(kAlarmSounds);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomOptions();
+  }
+
+  Future<void> _loadCustomOptions() async {
+    final List<CustomSound> custom = await CustomSoundService().list();
+    if (!mounted) return;
+    setState(() {
+      _soundOptions = <Map<String, String>>[
+        ...kAlarmSounds,
+        ...custom.map(
+          (CustomSound sound) => <String, String>{
+            'name': sound.name,
+            'url': sound.path,
+          },
+        ),
+      ];
+    });
+  }
 
   @override
   void dispose() {
@@ -544,10 +569,10 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
                   initialValue: _soundIndex,
                   decoration: const InputDecoration(labelText: 'Alarm sound'),
                   items: <DropdownMenuItem<int>>[
-                    for (int i = 0; i < kAlarmSounds.length; i++)
+                    for (int i = 0; i < _soundOptions.length; i++)
                       DropdownMenuItem<int>(
                         value: i,
-                        child: Text(kAlarmSounds[i]['name'] ?? 'Sound'),
+                        child: Text(_soundOptions[i]['name'] ?? 'Sound'),
                       ),
                   ],
                   onChanged: (int? value) {
@@ -560,7 +585,7 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
                 icon: const Icon(Icons.play_arrow),
                 onPressed: () {
                   AudioService().play(
-                    kAlarmSounds[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
+                    _soundOptions[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
                   );
                 },
               ),
@@ -615,7 +640,7 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
                     : _timeController.text.trim(),
                 title: title,
                 subtitle: _subtitleController.text.trim(),
-                soundName: kAlarmSounds[_soundIndex]['name'] ?? 'Bruh',
+                soundName: _soundOptions[_soundIndex]['name'] ?? 'Bruh',
                 voice: TTSService.characters[_voiceIndex],
               ),
             );
