@@ -3,12 +3,15 @@ library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
+import 'package:hypemotiv/services/proof_verification_service.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -28,10 +31,19 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   DateTime _now = DateTime(2026, 1, 1, 7, 23, 27);
   bool _disarmed = false;
   bool _uploading = false;
+  int _mathA = 24;
+  int _mathB = 6;
+  final TextEditingController _mathController = TextEditingController();
+  bool _mathSolved = false;
+  int _proofStep = 0;
+
 
   @override
   void initState() {
     super.initState();
+    final math.Random random = math.Random();
+    _mathA = 11 + random.nextInt(80);
+    _mathB = 3 + random.nextInt(8);
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (!mounted) {
         timer.cancel();
@@ -44,6 +56,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   @override
   void dispose() {
     _clockTimer?.cancel();
+    _mathController.dispose();
     super.dispose();
   }
 
@@ -67,7 +80,22 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     );
   }
 
+  void _checkMath() {
+    final int? answer = int.tryParse(_mathController.text.trim());
+    if (answer == _mathA * _mathB) {
+      setState(() => _mathSolved = true);
+      _toast('Maths task complete');
+    } else {
+      _toast('Wrong answer. Try again.');
+    }
+  }
+
   Future<void> _confirmProof() async {
+    if (!_mathSolved) {
+      _toast('Solve the maths task first');
+      return;
+    }
+    final String target = _proofStep == 0 ? 'sink' : 'toothbrush';
     final XFile? picked = await ImagePicker().pickImage(
       source: ImageSource.camera,
     );
@@ -77,57 +105,42 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     }
 
     setState(() => _uploading = true);
+    final ProofResult result = await ProofVerificationService().verify(
+      File(picked.path),
+      target,
+    );
+    if (!mounted) return;
+    setState(() => _uploading = false);
+    if (!result.ok) {
+      _toast(result.message);
+      return;
+    }
+
     final String? url = await HypeApi().uploadFile(
       File(picked.path),
       kind: 'proof',
     );
-    if (!mounted) return;
-    setState(() {
-      _uploading = false;
-      _disarmed = true;
-    });
-    await AudioService().stop();
-    if (url == null) {
-      final String? localPath = await ProofService.saveLocally(picked);
-      _toast(localPath == null
-          ? 'Photo kept in camera gallery · Alarm stopped'
-          : 'Check-in saved on device · Alarm stopped');
-    } else {
-      _toast('Check-in uploaded · Alarm stopped');
+    if (url == null) await ProofService.saveLocally(picked);
+
+    if (_proofStep == 0) {
+      setState(() => _proofStep = 1);
+      _toast('Sink photo accepted. Now show your toothbrush.');
+      return;
     }
+    setState(() => _disarmed = true);
+    await AudioService().stop();
+    _toast('Both photos accepted · Alarm stopped');
   }
 
-  /// The snooze button really requires 20 taps, then schedules a 5-minute alarm.
+  /// Snooze only unlocks after real phone movement (20 repetitions).
   Future<void> _snoozeWithExercise() async {
-    int completed = 0;
+    if (!_mathSolved) {
+      _toast('Solve the maths task first');
+      return;
+    }
     final bool? accepted = await showDialog<bool>(
       context: context,
-      builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setState) {
-            return AlertDialog(
-              title: const Text('20 jumping jacks'),
-              content: Text('Tap the button $completed of 20 times to unlock snooze.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    if (completed < 20) {
-                      setState(() => completed++);
-                    } else {
-                      Navigator.of(dialogContext).pop(true);
-                    }
-                  },
-                  child: Text(completed < 20 ? '1 rep' : 'Finish'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (BuildContext context) => const _ExerciseDialog(),
     );
     if (accepted != true || !mounted) return;
 
@@ -227,6 +240,53 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  CyberCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        SectionLabel(
+                          'Wake-up maths',
+                          trailing: _mathSolved ? 'Done' : 'Required',
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$_mathA × $_mathB = ?',
+                          style: const TextStyle(
+                            color: Color(0xFF1F2933),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (_mathSolved)
+                          const Text(
+                            'Correct. Photo check-in unlocked.',
+                            style: TextStyle(color: Color(0xFF12B76A)),
+                          )
+                        else
+                          Row(
+                            children: <Widget>[
+                              SizedBox(
+                                width: 130,
+                                child: TextField(
+                                  controller: _mathController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Your answer',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              FilledButton(
+                                onPressed: _checkMath,
+                                child: const Text('Check'),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   SizedBox(
                     height: 184,
                     child: CyberCard(
@@ -257,9 +317,11 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                                   trailing: 'Required',
                                 ),
                                 const Spacer(),
-                                const MicroText(
-                                  'Show your bathroom sink to check in',
-                                  color: Color(0xFF1F2933),
+                                MicroText(
+                                  _proofStep == 0
+                                      ? 'Photo 1 of 2: show your bathroom sink'
+                                      : 'Photo 2 of 2: show your toothbrush',
+                                  color: const Color(0xFF1F2933),
                                   fontSize: 13,
                                 ),
                                 const SizedBox(height: 6),
@@ -316,8 +378,10 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                         )
                       : NeonButton(
                           label: _uploading
-                              ? 'Uploading photo...'
-                              : 'Take photo & stop alarm',
+                              ? 'Checking photo...'
+                              : _proofStep == 0
+                                  ? 'Photo 1: sink'
+                                  : 'Photo 2: toothbrush',
                           icon: Icons.camera_alt,
                           onPressed: _confirmProof,
                         ),
@@ -384,6 +448,110 @@ class _PriorityItem extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+class _ExerciseDialog extends StatefulWidget {
+  const _ExerciseDialog();
+
+  @override
+  State<_ExerciseDialog> createState() => _ExerciseDialogState();
+}
+
+class _ExerciseDialogState extends State<_ExerciseDialog> {
+  StreamSubscription<AccelerometerEvent>? _subscription;
+  int _reps = 0;
+  double _previous = 0;
+  DateTime _lastPeak = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _manual = false;
+
+  static const int _required = 20;
+  static const double _threshold = 13.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startSensors();
+  }
+
+  void _startSensors() {
+    try {
+      _subscription = accelerometerEventStream().listen((AccelerometerEvent event) {
+        final double magnitude = math.sqrt(
+          event.x * event.x + event.y * event.y + event.z * event.z,
+        );
+        final DateTime now = DateTime.now();
+        final bool rising = _previous <= _threshold && magnitude > _threshold;
+        final bool cooled = now.difference(_lastPeak).inMilliseconds > 350;
+        if (rising && cooled) {
+          _lastPeak = now;
+          if (mounted) setState(() => _reps++);
+        }
+        _previous = magnitude;
+      });
+    } catch (_) {
+      _manual = true;
+    }
+  }
+
+  void _addManualRep() {
+    if (_reps >= _required) return;
+    setState(() => _reps++);
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('20 jumping jacks'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text('Reps detected: $_reps of $_required'),
+          const SizedBox(height: 8),
+          Text(
+            _manual
+                ? 'Motion sensor is not available here. Tap the button for each rep.'
+                : 'Move the phone up and down like a jumping jack.',
+            style: const TextStyle(color: Color(0xFF667085), fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: _reps / _required,
+            minHeight: 6,
+            color: const Color(0xFF3D5AFE),
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        if (!_manual)
+          TextButton(
+            onPressed: () => setState(() => _manual = true),
+            child: const Text('Manual mode'),
+          ),
+        TextButton(
+          onPressed: _addManualRep,
+          child: const Text('Count a rep'),
+        ),
+        FilledButton(
+          onPressed: _reps >= _required
+              ? () => Navigator.of(context).pop(true)
+              : null,
+          child: const Text('Finish'),
+        ),
+      ],
     );
   }
 }

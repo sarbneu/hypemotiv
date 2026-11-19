@@ -40,3 +40,11 @@ A ✅ SDK repaired + tests pass + ANDROID_HOME + scripts. B ✅ .env + smoke scr
 Device fix recorded: `TTSService.init()` now times out per call so a device without a TTS engine cannot block `runApp()`.
 
 Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/proxy` and uses `setSourceBytes`, avoiding crossOrigin=anonymous entirely. Native playback uses direct URLs. A "Play test sound" button on sign-in lets you verify audio before creating an account.
+
+
+## Wake-up task verification (2026-11-19)
+
+- Maths task: `AlarmActiveScreen` generates a multiplication question; proof and snooze are blocked until it is answered correctly.
+- Photo proof: `ProofVerificationService` rejects old, dark or blank photos and uses ML Kit image labels to check the sink photo and the toothbrush photo. Two different fresh photos are required before the alarm disarms.
+- Snooze: `_ExerciseDialog` counts jumping jacks from phone accelerometer motion with a 350 ms cooldown; manual counting is available if no sensor is present.
+- Builds verified: Android debug/release, web, macOS. Release APK ~89 MB.
