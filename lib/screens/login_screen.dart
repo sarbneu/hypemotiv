@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _registerMode = true;
   bool _busy = false;
   bool _remember = true;
+  bool _alarmTesting = false;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    if (_alarmTesting) AudioService().stop();
     _handleController.dispose();
     _keyController.dispose();
     super.dispose();
@@ -310,6 +313,34 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: const Icon(Icons.volume_up, size: 16),
                     label: const MicroText(
                       'Play test sound',
+                      color: Color(0xFF3D5AFE),
+                      fontSize: 12,
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () async {
+                      if (_alarmTesting) {
+                        await AudioService().stop();
+                        if (!mounted) return;
+                        setState(() => _alarmTesting = false);
+                        _toast('Alarm test stopped');
+                        return;
+                      }
+                      await AudioService().play(
+                        AudioService.fallbackSoundUrl,
+                        loop: true,
+                      );
+                      await NotificationService().showImmediate(
+                        title: 'Alarm test',
+                        body: 'Your alarm can ring and notify you.',
+                      );
+                      if (!mounted) return;
+                      setState(() => _alarmTesting = true);
+                      _toast('Alarm ringing - tap again to stop');
+                    },
+                    icon: const Icon(Icons.notifications_active_outlined, size: 16),
+                    label: MicroText(
+                      _alarmTesting ? 'Stop alarm test' : 'Test alarm now',
                       color: Color(0xFF3D5AFE),
                       fontSize: 12,
                     ),

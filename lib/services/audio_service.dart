@@ -22,6 +22,26 @@ class AudioService {
 
   Future<void> init() async {
     _audioPlayer = AudioPlayer();
+    try {
+      await _audioPlayer.setAudioContext(
+        AudioContext(
+          android: AudioContextAndroid(
+            isSpeakerphoneOn: true,
+            stayAwake: true,
+            contentType: AndroidContentType.sonification,
+            usageType: AndroidUsageType.alarm,
+            audioFocus: AndroidAudioFocus.gain,
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: const <AVAudioSessionOptions>{},
+          ),
+        ),
+      );
+      await _audioPlayer.setVolume(1.0);
+    } catch (_) {
+      // Some platforms do not support configuring the audio context.
+    }
   }
 
   /// Play a local file path or a remote URL.

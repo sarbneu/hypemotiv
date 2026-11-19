@@ -14,6 +14,7 @@ import 'package:hypemotiv/screens/streak_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/hype_api.dart';
+import 'package:hypemotiv/services/notification_service.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -82,6 +83,15 @@ class MoreScreen extends StatelessWidget {
                 subtitle: const Text('Play the fallback alarm sound now'),
                 trailing: const Icon(Icons.play_arrow_rounded),
                 onTap: () => _testAlarmSound(context),
+              ),
+            ),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.notifications_active_outlined, color: colors.primary),
+                title: const Text('Test alarm now'),
+                subtitle: const Text('Sound, vibration and notification together'),
+                trailing: const Icon(Icons.play_arrow_rounded),
+                onTap: () => _testAlarmNow(context),
               ),
             ),
             const SizedBox(height: 24),
@@ -167,6 +177,18 @@ class MoreScreen extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+
+  Future<void> _testAlarmNow(BuildContext context) async {
+    await AudioService().play(AudioService.fallbackSoundUrl);
+    await NotificationService().showImmediate(
+      title: 'Alarm test',
+      body: 'Your alarm can ring and notify you.',
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Alarm test started')),
     );
   }
 

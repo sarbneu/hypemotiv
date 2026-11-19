@@ -84,14 +84,27 @@ class NotificationService {
   }) async {
     if (!_ready) await init();
     if (kIsWeb) return;
-    await _plugin.zonedSchedule(
-      id: id ?? when.millisecondsSinceEpoch ~/ 1000,
-      title: title,
-      body: body,
-      scheduledDate: tz.TZDateTime.from(when, tz.local),
-      notificationDetails: _details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
+    final int notificationId = id ?? when.millisecondsSinceEpoch ~/ 1000;
+    try {
+      await _plugin.zonedSchedule(
+        id: notificationId,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(when, tz.local),
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (_) {
+      // Some phones refuse exact alarms; an inexact alarm still fires.
+      await _plugin.zonedSchedule(
+        id: notificationId,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(when, tz.local),
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
   }
 
   /// Schedule a daily repeating reminder (e.g. wind-down at 10:45 PM).
@@ -116,14 +129,43 @@ class NotificationService {
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
-    await _plugin.zonedSchedule(
+    try {
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (_) {
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: scheduled,
+        notificationDetails: _details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    }
+  }
+
+  /// Show an alarm notification right now, used by the Test alarm button.
+  Future<void> showImmediate({
+    required String title,
+    required String body,
+    int id = 9999,
+  }) async {
+    if (!_ready) await init();
+    if (kIsWeb) return;
+    await _plugin.show(
       id: id,
       title: title,
       body: body,
-      scheduledDate: scheduled,
+      payload: 'test-alarm',
       notificationDetails: _details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
