@@ -80,7 +80,7 @@ class MoreScreen extends StatelessWidget {
               child: ListTile(
                 leading: Icon(Icons.volume_up_rounded, color: colors.primary),
                 title: const Text('Test alarm sound'),
-                subtitle: const Text('Play the fallback alarm sound now'),
+                subtitle: const Text('Bundled sound - no internet needed'),
                 trailing: const Icon(Icons.play_arrow_rounded),
                 onTap: () => _testAlarmSound(context),
               ),
@@ -194,7 +194,7 @@ class MoreScreen extends StatelessWidget {
 
   Future<void> _testAlarmSound(BuildContext context) async {
     try {
-      await AudioService().play(AudioService.fallbackSoundUrl);
+      await AudioService().playLocalTest();
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Alarm sound played')),

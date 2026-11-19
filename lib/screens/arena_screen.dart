@@ -297,6 +297,13 @@ class _ArenaScreenState extends State<ArenaScreen> {
                           onPressed: _playDrill,
                         ),
                         const SizedBox(height: 8),
+                        NeonButton(
+                          label: 'Play test sound (offline)',
+                          icon: Icons.volume_up,
+                          primary: false,
+                          onPressed: () => AudioService().playLocalTest(),
+                        ),
+                        const SizedBox(height: 8),
                         Row(
                           children: <Widget>[
                             Expanded(

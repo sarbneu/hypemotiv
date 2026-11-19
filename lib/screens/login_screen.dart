@@ -307,12 +307,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   TextButton.icon(
                     onPressed: () async {
-                      await AudioService().play(AudioService.fallbackSoundUrl);
+                      await AudioService().playLocalTest();
                       _toast('Test sound played');
                     },
                     icon: const Icon(Icons.volume_up, size: 16),
                     label: const MicroText(
-                      'Play test sound',
+                      'Play test sound (offline)',
                       color: Color(0xFF3D5AFE),
                       fontSize: 12,
                     ),

@@ -14,6 +14,25 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal();
 
+  /// Bundled sound: no network, no CORS, no backend needed.
+  static const String localTestSound = 'assets/audio/test_alarm.wav';
+
+  /// Play the bundled sound directly. This is the simplest sound check.
+  Future<void> playLocalTest({bool loop = false}) async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.setReleaseMode(
+        loop ? ReleaseMode.loop : ReleaseMode.release,
+      );
+      await _audioPlayer.setSourceAsset(localTestSound);
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.resume();
+    } catch (e) {
+      debugPrint('AudioService: local test sound failed: $e');
+      await play(fallbackSoundUrl, loop: loop);
+    }
+  }
+
   /// Verified reachable meme sound (HTTP 200, audio/mpeg).
   static const String fallbackSoundUrl =
       'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
