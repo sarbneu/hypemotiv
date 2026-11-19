@@ -42,6 +42,12 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
 
+# Local copy of flutter_tts with a macOS Package.swift added. The published
+# 4.2.5 package has no Swift Package Manager manifest, which Flutter warns about.
+dependency_overrides:
+  flutter_tts:
+    path: packages/flutter_tts
+
 flutter:
   uses-material-design: true
 
