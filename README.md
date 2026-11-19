@@ -106,7 +106,9 @@ hypemotiv/
 
 ## Verification performed
 
-- `flutter analyze` — no errors (legacy info-level lints remain in older files).
+- `flutter analyze` — no errors, no warnings.
+- Gradle on Java 25: `--enable-native-access=ALL-UNNAMED` set in `android/gradle.properties`
+  and `GRADLE_OPTS` in `~/.zshrc` to avoid the restricted-method warning.
 - `flutter build apk --release` — succeeded, `app-release.apk` ≈ 55.3 MB (< 150 MB target).
 - Backend: `node --check server.js`, live `/api/health`, `/api/sounds?q=bruh`,
   `/api/email/send`, multipart upload and byte-for-byte file download all returned real responses.
