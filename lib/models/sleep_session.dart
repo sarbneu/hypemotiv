@@ -1,4 +1,5 @@
 /// Sleep session model - tracks a single night's sleep.
+library;
 class SleepSession {
   final String id;
   final DateTime startDate;

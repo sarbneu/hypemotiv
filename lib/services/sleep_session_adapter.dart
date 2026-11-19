@@ -1,4 +1,5 @@
 /// Hive type adapter for SleepSession model.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/sleep_session.dart';
 

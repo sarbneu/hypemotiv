@@ -3,6 +3,7 @@
 /// These are placeholders - replace with your actual Oracle connection details.
 /// The HypeMotiv app connects to Oracle via a REST API (Node.js + oracledb)
 /// since Flutter has no native Oracle driver.
+library;
 class OracleConfig {
   // Database connection details
   static const String oracleUser = 'your_username';

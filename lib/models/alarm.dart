@@ -1,4 +1,5 @@
 /// Core data model for the HypeMotiv alarm.
+library;
 class Alarm {
   final String id;
   final String title;

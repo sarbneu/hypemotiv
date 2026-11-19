@@ -1,4 +1,5 @@
 /// Sound library screen - browse and manage custom sounds.
+library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
@@ -64,7 +65,7 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
-          color: Colors.yellow.withOpacity(0.1),
+          color: Colors.yellow.withValues(alpha: 0.1),
           child: Row(
             children: [
               const Text(
@@ -98,7 +99,7 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.yellow.withOpacity(0.2),
+                      color: Colors.yellow.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(

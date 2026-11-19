@@ -1,4 +1,5 @@
 /// Quote model for the text-to-speech motivational quote scraper.
+library;
 class Quote {
   final String id;
   final String text;

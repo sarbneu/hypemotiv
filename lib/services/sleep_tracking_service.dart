@@ -1,4 +1,5 @@
 /// Sleep tracking service - simulates circadian rhythm analysis and sleep stage tracking.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/sleep_session.dart';
 
@@ -51,7 +52,6 @@ class SleepTrackingService {
     final history = getSleepHistory(limit: 30);
     if (history.isEmpty) return 0;
 
-    final now = DateTime.now();
     int consistentDays = 0;
     DateTime? prevEnd;
 

@@ -1,4 +1,5 @@
 /// Text-to-Speech service for reading motivational quotes aloud.
+library;
 import 'package:flutter_tts/flutter_tts.dart';
 
 class TTSService {

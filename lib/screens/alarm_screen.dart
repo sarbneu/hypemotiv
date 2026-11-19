@@ -1,4 +1,5 @@
 /// Alarm screen - basic alarm timer with meme audio.
+library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
@@ -12,7 +13,7 @@ class AlarmScreen extends StatefulWidget {
 
 class _AlarmScreenState extends State<AlarmScreen> {
   final AudioService _audioService = AudioService();
-  List<Map<String, dynamic>> _alarms = [
+  final List<Map<String, dynamic>> _alarms = [
     {
       'title': 'Morning Wake Up',
       'time': '07:00 AM',
@@ -35,7 +36,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
       'isCustom': false,
     },
   ];
-  String _selectedSound = '';
   bool _isLoading = true;
 
   @override
@@ -45,18 +45,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
   }
 
   Future<void> _loadSounds() async {
-    // Try to fetch sounds from myinstants.com
-    final sounds = await SoundManager().fetchSounds(category: 'Alarm', limit: 20);
-    if (sounds.isNotEmpty) {
-      // Use the first sound as default
-      _selectedSound = sounds[0].url;
-    } else {
-      // Fallback to demo sounds
-      _selectedSound = 'https://www.soundjay.com/alarms/sounds/bell-1.mp3';
-    }
-    setState(() {
-      _isLoading = false;
-    });
+    // Warm the sound list; the active UI uses ArenaScreen for alarm sounds.
+    await SoundManager().fetchSounds(category: 'Alarm', limit: 20);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
 
   Future<void> _playSound(String audioUrl) async {
@@ -148,7 +140,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.yellow.withOpacity(0.2),
+                color: Colors.yellow.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(

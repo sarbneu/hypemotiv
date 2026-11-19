@@ -11,11 +11,11 @@
 ///   const result = await conn.execute('SELECT * FROM hypemotiv.alarm_settings WHERE user_id = :uid', [uid]);
 ///
 /// See: README.md for full setup instructions.
+library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class OracleService {
-  static const String _appName = 'HypeMotiv';
 
   // Endpoints used by the mobile app to sync with Oracle.
   static const String alarmsEndpoint = '/api/alarms';
@@ -39,7 +39,7 @@ class OracleService {
     if (configured.isNotEmpty) {
       return configured.replaceFirst(RegExp(r'/api/?$'), '');
     }
-    return 'http://${host}:$port';
+    return 'http://$host:$port';
   }
 
   /// Build the full URL for a given endpoint.

@@ -1,4 +1,5 @@
 /// Daily checklist task model (5 tasks as per design).
+library;
 class Task {
   final String id;
   final String title;

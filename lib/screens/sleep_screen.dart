@@ -1,4 +1,5 @@
 /// Sleep analytics screen - circadian rhythm analysis.
+library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/sleep_tracking_service.dart';
 
@@ -97,7 +98,7 @@ class _SleepScreenState extends State<SleepScreen> {
     required Color color,
   }) {
     return Card(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -185,7 +186,7 @@ class _SleepScreenState extends State<SleepScreen> {
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Card(
-      color: Colors.black.withOpacity(0.5),
+      color: Colors.black.withValues(alpha: 0.5),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

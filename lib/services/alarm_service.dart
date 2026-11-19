@@ -1,7 +1,7 @@
 /// Alarm service - manages alarm scheduling and lifecycle.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/alarm.dart';
-import 'package:flutter/cupertino.dart';
 
 class AlarmService {
   static const String boxName = 'alarms';

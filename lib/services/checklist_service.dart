@@ -1,10 +1,10 @@
 /// Checklist service - manages the 5-task daily checklist.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/task.dart';
 
 class ChecklistService {
   static const String boxName = 'checklist';
-  static const int _totalTasks = 5;
 
   late Box<Task> _box;
 
@@ -22,7 +22,7 @@ class ChecklistService {
     if (todayBox.isEmpty) {
       for (final task in tasks) {
         final withDate = task.copyWith(
-          id: '${task.id}_${currentDate}',
+          id: '${task.id}_$currentDate',
           completed: false,
           completedAt: null,
         );
@@ -43,7 +43,7 @@ class ChecklistService {
 
   Future<List<Task>> getTodayTasks() async {
     final today = DateTime.now().formatYmd();
-    final todayBox = await Hive.openBox<Task>('_day_${today}');
+    final todayBox = await Hive.openBox<Task>('_day_$today');
     return todayBox.values.cast<Task>().toList();
   }
 
@@ -73,7 +73,7 @@ class ChecklistService {
 
   /// Get or create a daily box for the given date.
   Future<Box<Task>> _getOrCreateDailyBox(String date) async {
-    return Hive.openBox<Task>('_day_${date}');
+    return Hive.openBox<Task>('_day_$date');
   }
 }
 

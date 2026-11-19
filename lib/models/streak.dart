@@ -1,4 +1,5 @@
 /// Streak tracking model - tracks consecutive days of app usage.
+library;
 class Streak {
   final String userId;
   final int currentStreak;

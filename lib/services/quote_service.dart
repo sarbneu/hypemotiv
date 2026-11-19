@@ -1,4 +1,5 @@
 /// Quote generator service - generates motivational quotes for text-to-speech.
+library;
 import 'dart:math';
 
 import 'package:hypemotiv/models/quote.dart';

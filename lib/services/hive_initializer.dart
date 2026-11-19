@@ -1,4 +1,5 @@
 /// Hive box initialization helper.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/task.dart';
 import 'package:hypemotiv/models/alarm.dart';

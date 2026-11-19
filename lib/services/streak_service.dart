@@ -1,4 +1,5 @@
 /// Streak service - tracks consecutive active days.
+library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/streak.dart';
 

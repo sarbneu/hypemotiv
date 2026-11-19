@@ -1,4 +1,5 @@
 /// Daily checklist screen - 5-task habit tracker.
+library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/models/task.dart';
 import 'package:hypemotiv/services/checklist_service.dart';
@@ -63,7 +64,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
-          color: Colors.yellow.withOpacity(0.1),
+          color: Colors.yellow.withValues(alpha: 0.1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -87,7 +88,7 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
               final task = _tasks[index];
               return Card(
                 color: task.completed
-                    ? Colors.green.withOpacity(0.1)
+                    ? Colors.green.withValues(alpha: 0.1)
                     : const Color(0xFF1E1E1E),
                 child: ListTile(
                   leading: Container(
@@ -95,8 +96,8 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       color: task.completed
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.yellow.withOpacity(0.2),
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : Colors.yellow.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(

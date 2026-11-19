@@ -1,4 +1,5 @@
 /// Streak tracking screen - showing daily streaks and progress.
+library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/streak_service.dart';
 
@@ -63,7 +64,7 @@ class _StreakScreenState extends State<StreakScreen> {
 
   Widget _buildStreakCard() {
     return Card(
-      color: Colors.yellow.withOpacity(0.2),
+      color: Colors.yellow.withValues(alpha: 0.2),
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -164,7 +165,7 @@ class _StreakScreenState extends State<StreakScreen> {
           color: const Color(0xFF1E1E1E),
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.yellow.withOpacity(0.2),
+              backgroundColor: Colors.yellow.withValues(alpha: 0.2),
               child: Text(c['emoji'] as String? ?? '', style: const TextStyle(fontSize: 18)),
             ),
             title: Text(c['title'] as String? ?? '', style: const TextStyle(color: Colors.white)),
