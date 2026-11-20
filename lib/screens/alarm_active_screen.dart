@@ -11,6 +11,8 @@ import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
+import 'package:hypemotiv/services/task_selection_service.dart';
+import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 import 'package:image_picker/image_picker.dart';
@@ -36,11 +38,19 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   final TextEditingController _mathController = TextEditingController();
   bool _mathSolved = false;
   int _proofStep = 0;
+  List<String> _requiredTasks = wakeTasks.map((WakeTask task) => task.id).toList();
+
+  bool get _requireMaths => _requiredTasks.contains('maths');
+  bool get _requirePhoto => _requiredTasks.contains('photo');
+
 
 
   @override
   void initState() {
     super.initState();
+    TaskSelectionService().selected().then((List<String> ids) {
+      if (mounted) setState(() => _requiredTasks = ids);
+    });
     final math.Random random = math.Random();
     _mathA = 11 + random.nextInt(80);
     _mathB = 3 + random.nextInt(8);
@@ -90,9 +100,19 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     }
   }
 
+  Future<void> _disarmNow(String message) async {
+    setState(() => _disarmed = true);
+    await AudioService().stop();
+    _toast(message);
+  }
+
   Future<void> _confirmProof() async {
-    if (!_mathSolved) {
+    if (_requireMaths && !_mathSolved) {
       _toast('Solve the maths task first');
+      return;
+    }
+    if (!_requirePhoto) {
+      await _disarmNow('Tasks complete · Alarm stopped');
       return;
     }
     final String target = _proofStep == 0 ? 'sink' : 'toothbrush';
@@ -127,24 +147,52 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       _toast('Sink photo accepted. Now show your toothbrush.');
       return;
     }
-    setState(() => _disarmed = true);
-    await AudioService().stop();
-    _toast('Both photos accepted · Alarm stopped');
+    await _disarmNow('Both photos accepted · Alarm stopped');
   }
 
   /// Snooze only unlocks after real phone movement (20 repetitions).
   Future<void> _snoozeWithExercise() async {
-    if (!_mathSolved) {
+    if (_requireMaths && !_mathSolved) {
       _toast('Solve the maths task first');
+      return;
+    }
+    final Map<String, Object> exercise = _pickExercise();
+    if (exercise.isEmpty) {
+      await _snooze({}, duration: const Duration(minutes: 5));
       return;
     }
     final bool? accepted = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) => const _ExerciseDialog(),
+      builder: (BuildContext context) => _ExerciseDialog(
+        label: exercise['label']! as String,
+        reps: exercise['reps']! as int,
+      ),
     );
     if (accepted != true || !mounted) return;
+    await _snooze(
+      <String, Object>{
+        'label': exercise['label']!,
+        'reps': exercise['reps']!,
+      },
+      duration: const Duration(minutes: 5),
+    );
+  }
 
-    final DateTime wake = DateTime.now().add(const Duration(minutes: 5));
+  Map<String, Object> _pickExercise() {
+    if (_requiredTasks.contains('jumping_jacks')) {
+      return <String, Object>{'label': 'jumping jacks', 'reps': 20};
+    }
+    if (_requiredTasks.contains('squats')) {
+      return <String, Object>{'label': 'squats', 'reps': 15};
+    }
+    if (_requiredTasks.contains('pushups')) {
+      return <String, Object>{'label': 'push-ups', 'reps': 10};
+    }
+    return <String, Object>{};
+  }
+
+  Future<void> _snooze(Map<String, Object> exercise, {required Duration duration}) async {
+    final DateTime wake = DateTime.now().add(duration);
     await AudioService().stop();
     await NotificationService().scheduleAlarm(
       when: wake,
@@ -152,6 +200,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       body: 'Snooze is over. Get up.',
       id: wake.millisecondsSinceEpoch ~/ 1000,
     );
+    if (!mounted) return;
     setState(() => _disarmed = true);
     _toast(
       'Snoozed until ${wake.hour.toString().padLeft(2, '0')}:${wake.minute.toString().padLeft(2, '0')}',
@@ -239,6 +288,20 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                       ],
                     ),
                   ),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: <Widget>[
+                      for (final WakeTask task in wakeTasks)
+                        if (_requiredTasks.contains(task.id))
+                          Chip(
+                            label: Text(task.label),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_requireMaths) ...<Widget>[
                   const SizedBox(height: 16),
                   CyberCard(
                     child: Column(
@@ -286,6 +349,8 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                       ],
                     ),
                   ),
+                  ],
+                  if (_requirePhoto) ...<Widget>[
                   const SizedBox(height: 16),
                   SizedBox(
                     height: 184,
@@ -354,6 +419,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                       ),
                     ),
                   ),
+                  ],
                   const SizedBox(height: 18),
                   _disarmed
                       ? CyberCard(
@@ -386,8 +452,10 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                           onPressed: _confirmProof,
                         ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Need 5 more minutes? Do 20 jumping jacks first.',
+                  Text(
+                    _pickExercise().isEmpty
+                        ? 'Need 5 more minutes? Snooze for 5 minutes.'
+                        : 'Need 5 more minutes? Do ${_pickExercise()['reps']} ${_pickExercise()['label']} first.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: Color(0xFF667085),
@@ -454,7 +522,10 @@ class _PriorityItem extends StatelessWidget {
 
 
 class _ExerciseDialog extends StatefulWidget {
-  const _ExerciseDialog();
+  const _ExerciseDialog({required this.label, required this.reps});
+
+  final String label;
+  final int reps;
 
   @override
   State<_ExerciseDialog> createState() => _ExerciseDialogState();
@@ -467,7 +538,6 @@ class _ExerciseDialogState extends State<_ExerciseDialog> {
   DateTime _lastPeak = DateTime.fromMillisecondsSinceEpoch(0);
   bool _manual = false;
 
-  static const int _required = 20;
   static const double _threshold = 13.0;
 
   @override
@@ -497,7 +567,7 @@ class _ExerciseDialogState extends State<_ExerciseDialog> {
   }
 
   void _addManualRep() {
-    if (_reps >= _required) return;
+    if (_reps >= widget.reps) return;
     setState(() => _reps++);
   }
 
@@ -510,22 +580,22 @@ class _ExerciseDialogState extends State<_ExerciseDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('20 jumping jacks'),
+      title: Text('${widget.reps} ${widget.label}'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Reps detected: $_reps of $_required'),
+          Text('Reps detected: $_reps of ${widget.reps}'),
           const SizedBox(height: 8),
           Text(
             _manual
                 ? 'Motion sensor is not available here. Tap the button for each rep.'
-                : 'Move the phone up and down like a jumping jack.',
+                : 'Move the phone with each rep.',
             style: const TextStyle(color: Color(0xFF667085), fontSize: 13),
           ),
           const SizedBox(height: 12),
           LinearProgressIndicator(
-            value: _reps / _required,
+            value: _reps / widget.reps,
             minHeight: 6,
             color: const Color(0xFF3D5AFE),
           ),
@@ -546,7 +616,7 @@ class _ExerciseDialogState extends State<_ExerciseDialog> {
           child: const Text('Count a rep'),
         ),
         FilledButton(
-          onPressed: _reps >= _required
+          onPressed: _reps >= widget.reps
               ? () => Navigator.of(context).pop(true)
               : null,
           child: const Text('Finish'),

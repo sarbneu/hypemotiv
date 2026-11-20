@@ -14,6 +14,7 @@ import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
 import 'package:hypemotiv/services/tts_service.dart';
 import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/screens/task_picker_screen.dart';
 import 'package:hypemotiv/utils/sound_catalog.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
@@ -596,6 +597,17 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
             onPressed: () {
               AudioService().play(
                 _soundOptions[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
+              );
+            },
+          ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.checklist),
+            label: const Text('Choose wake-up tasks'),
+            onPressed: () async {
+              await Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (BuildContext context) => const TaskPickerScreen(),
+                ),
               );
             },
           ),

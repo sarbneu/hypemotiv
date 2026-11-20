@@ -3,6 +3,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/screens/task_picker_screen.dart';
+import 'package:hypemotiv/services/task_selection_service.dart';
+import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/auth_service.dart';
 import 'package:hypemotiv/utils/sound_catalog.dart';
@@ -24,6 +27,7 @@ class _SetupScreenState extends State<SetupScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   int _disciplineIndex = 0;
   SoundOption _selectedSound = defaultSoundOptions.first;
+  List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
 
   static const List<String> _disciplines = <String>[
     'David Goggins',
@@ -52,6 +56,14 @@ class _SetupScreenState extends State<SetupScreen> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    TaskSelectionService().selected().then((List<String> ids) {
+      if (mounted) setState(() => _selectedTasks = ids);
+    });
   }
 
   @override
@@ -130,6 +142,24 @@ class _SetupScreenState extends State<SetupScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.checklist),
+                    label: Text(
+                      'Wake-up tasks: ${_selectedTasks.length} selected (change)',
+                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (BuildContext context) =>
+                              const TaskPickerScreen(),
+                        ),
+                      );
+                      final List<String> ids =
+                          await TaskSelectionService().selected();
+                      if (mounted) setState(() => _selectedTasks = ids);
+                    },
                   ),
                   const SizedBox(height: 18),
 

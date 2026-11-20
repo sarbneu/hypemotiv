@@ -58,3 +58,11 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Tests cover account creation, wrong passcode, one-character passcode and mismatched confirmation (5/5 passing).
 - Sound picker is reachable from first-run setup and the Add alarm dialog; it combines local files, bundled sounds and live scraped sounds.
 - Optional Vercel sound source via VERCEL_SOUNDS_URL (deployment must be public or VERCEL_BYPASS_TOKEN set).
+
+
+## Selectable wake-up tasks (2026-11-20)
+
+- New Wake-up tasks screen with five task types: maths challenge, photo proof, jumping jacks, squats and push-ups.
+- Selection persists via TaskSelectionService and is reachable from first-run setup and the Add alarm dialog.
+- AlarmActiveScreen honours the selection: maths/photo are skipped when unchecked, and snooze uses the selected exercise with motion-counted reps.
+- Tests cover default task selection and persistence (6/6 passing). Verified on emulator at 1080x2400.

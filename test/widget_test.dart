@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hypemotiv/main.dart';
 import 'package:hypemotiv/screens/login_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/services/task_selection_service.dart';
+import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -105,4 +107,15 @@ void main() {
     expect(entered, isFalse);
     expect(find.text('Passcodes do not match'), findsNWidgets(2));
   });
+  test('task selection defaults to all tasks and persists', () async {
+    SharedPreferences.setMockInitialValues({});
+    final TaskSelectionService service = TaskSelectionService();
+    expect(await service.selected(), wakeTasks.map((WakeTask task) => task.id).toList());
+
+    await service.save(<String>['maths', 'squats']);
+    expect(await service.selected(), <String>['maths', 'squats']);
+    expect(await service.isRequired('photo'), isFalse);
+    expect(await service.isRequired('maths'), isTrue);
+  });
+
 }
