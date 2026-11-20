@@ -32,6 +32,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'runner@hypemotiv.app');
     await tester.enterText(find.byType(TextField).at(1), 'wakeup123');
+    await tester.enterText(find.byType(TextField).at(2), 'wakeup123');
     await tester.ensureVisible(find.text('Create account and continue'));
     await tester.pump();
     await tester.tap(find.text('Create account and continue'));
@@ -62,6 +63,46 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(entered, isFalse);
-    expect(find.text('Incorrect passcode'), findsOneWidget);
+    expect(find.text('Incorrect passcode or handle'), findsNWidgets(2));
+  });
+
+  testWidgets('a one-character passcode is accepted', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    bool entered = false;
+    await tester.pumpWidget(
+      MaterialApp(home: LoginScreen(onEnter: () => entered = true)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextField).at(0), 'solo');
+    await tester.enterText(find.byType(TextField).at(1), '1');
+    await tester.enterText(find.byType(TextField).at(2), '1');
+    await tester.ensureVisible(find.text('Create account and continue'));
+    await tester.pump();
+    await tester.tap(find.text('Create account and continue'));
+    await tester.pumpAndSettle();
+
+    expect(entered, isTrue);
+    expect(await AuthService().login('solo', '1'), isTrue);
+  });
+
+  testWidgets('mismatched passcodes are rejected', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    bool entered = false;
+    await tester.pumpWidget(
+      MaterialApp(home: LoginScreen(onEnter: () => entered = true)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.enterText(find.byType(TextField).at(0), 'solo');
+    await tester.enterText(find.byType(TextField).at(1), 'abc');
+    await tester.enterText(find.byType(TextField).at(2), 'abd');
+    await tester.ensureVisible(find.text('Create account and continue'));
+    await tester.pump();
+    await tester.tap(find.text('Create account and continue'));
+    await tester.pumpAndSettle();
+
+    expect(entered, isFalse);
+    expect(find.text('Passcodes do not match'), findsNWidgets(2));
   });
 }

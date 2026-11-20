@@ -627,6 +627,45 @@ const AUDIO_PROXY_HOSTS = new Set([
   'localhost',
   '127.0.0.1',
 ]);
+// Extra audio hosts (comma-separated), e.g. a public Vercel sound deployment.
+for (const host of String(process.env.AUDIO_PROXY_EXTRA_HOSTS || '').split(',')) {
+  const clean = host.trim();
+  if (clean) AUDIO_PROXY_HOSTS.add(clean);
+}
+if (process.env.VERCEL_SOUNDS_URL) {
+  try { AUDIO_PROXY_HOSTS.add(new URL(process.env.VERCEL_SOUNDS_URL).hostname); } catch (_) {}
+}
+
+async function fetchVercelSounds(query) {
+  const raw = String(process.env.VERCEL_SOUNDS_URL || '').trim();
+  if (!raw) return [];
+  const headers = { 'User-Agent': USER_AGENT };
+  if (process.env.VERCEL_BYPASS_TOKEN) {
+    headers['x-vercel-protection-bypass'] = process.env.VERCEL_BYPASS_TOKEN;
+  }
+  const response = await fetch(raw, {
+    headers,
+    signal: AbortSignal.timeout(9000),
+    redirect: 'follow',
+  });
+  if (!response.ok) throw new Error(`Vercel HTTP ${response.status}`);
+  const text = await response.text();
+  const base = new URL(raw).origin;
+  const found = new Map();
+  const pattern = /https?:\/\/[^"\s'<>]+?\.(?:mp3|wav|ogg|m4a)(?:\?[^"\s'<>]*)?/gi;
+  for (const match of text.match(pattern) || []) {
+    let url = match.replace(/&amp;/g, '&');
+    try { url = new URL(url, base).toString(); } catch (_) { continue; }
+    const name = decodeURIComponent(url.split('/').pop() || 'sound')
+      .replace(/\.[a-z0-9]+$/i, '')
+      .replace(/[-_]+/g, ' ')
+      .trim();
+    if (!query || name.toLowerCase().includes(query.toLowerCase())) {
+      found.set(url, { name, url, source: 'vercel' });
+    }
+  }
+  return [...found.values()];
+}
 app.get('/api/sounds/proxy', async (req, res) => {
   let target;
   try {
@@ -746,6 +785,23 @@ app.get('/api/sounds', async (req, res) => {
     } catch (err) {
       console.warn('[sounds] scrape candidate failed:', url, '->', err.message);
     }
+  }
+
+  // Optional public Vercel sound deployment (set VERCEL_SOUNDS_URL in .env).
+  try {
+    const vercel = await fetchVercelSounds(q);
+    if (vercel.length > 0) {
+      const seen = new Set(sounds.map((s) => s.url));
+      for (const item of vercel) {
+        if (!seen.has(item.url)) {
+          sounds.push(item);
+          seen.add(item.url);
+        }
+      }
+      source = 'live';
+    }
+  } catch (err) {
+    console.warn('[sounds] vercel source unavailable:', err.message);
   }
 
   if (sounds.length === 0) {

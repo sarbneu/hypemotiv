@@ -19,6 +19,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _handleController = TextEditingController();
   final TextEditingController _keyController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+  String _error = '';
   bool _registered = false;
   bool _registerMode = true;
   bool _busy = false;
@@ -48,6 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_alarmTesting) AudioService().stop();
     _handleController.dispose();
     _keyController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -62,19 +65,36 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _submit() async {
+  String? _validate() {
     final String user = _handleController.text.trim().toLowerCase();
-    final String pass = _keyController.text;
-    if (!user.contains('@') || user.length < 5) {
-      _toast('Enter a valid email address');
-      return;
+    final String pass = _keyController.text.trim();
+    if (user.isEmpty) return 'Enter an email address or a handle';
+    if (user.contains(RegExp(r'\s'))) return 'No spaces are allowed';
+    if (user.length < 3) return 'Use at least 3 characters';
+    if (!RegExp(r'^[a-z0-9._@-]+$').hasMatch(user)) {
+      return 'Use letters, numbers, @, dot, dash or underscore only';
     }
-    if (pass.length < 4) {
-      _toast('Passcode must be at least 4 characters');
-      return;
+    if (pass.isEmpty) return 'Enter a passcode (even one character is fine)';
+    if (pass.length > 64) return 'Passcode is too long';
+    if (_registerMode && pass != _confirmController.text.trim()) {
+      return 'Passcodes do not match';
     }
+    return null;
+  }
 
-    setState(() => _busy = true);
+  Future<void> _submit() async {
+    final String? problem = _validate();
+    if (problem != null) {
+      setState(() => _error = problem);
+      _toast(problem);
+      return;
+    }
+    setState(() {
+      _error = '';
+      _busy = true;
+    });
+    final String user = _handleController.text.trim().toLowerCase();
+    final String pass = _keyController.text.trim();
     final AuthService auth = AuthService();
     bool ok;
     if (_registerMode) {
@@ -88,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = false);
 
     if (!ok) {
-      _toast('Incorrect passcode');
+      setState(() => _error = 'Incorrect passcode or handle');
+      _toast(_error);
       return;
     }
     _toast(_registerMode ? 'Account created' : 'Signed in');
@@ -207,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 22),
                   const MicroText(
-                    'Email address',
+                    'Email or handle',
                     color: Color(0xFF667085),
                     fontSize: 13,
                   ),
@@ -221,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
-                      hintText: 'you@example.com',
+                      hintText: 'you@example.com or runner09',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -240,9 +261,40 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Color(0xFF3D5AFE),
                         size: 18,
                       ),
-                      hintText: 'At least 4 characters',
+                      hintText: 'Any passcode, even 1 character',
                     ),
                   ),
+                  if (_registerMode) ...<Widget>[
+                    const SizedBox(height: 12),
+                    const MicroText(
+                      'Repeat passcode',
+                      color: Color(0xFF667085),
+                      fontSize: 13,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _confirmController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(
+                          Icons.key,
+                          color: Color(0xFF3D5AFE),
+                          size: 18,
+                        ),
+                        hintText: 'Repeat your passcode',
+                      ),
+                    ),
+                  ],
+                  if (_error.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 10),
+                    Text(
+                      _error,
+                      style: const TextStyle(
+                        color: Color(0xFFF04438),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: <Widget>[
@@ -294,6 +346,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  TextButton(
+                    onPressed: () => widget.onEnter?.call(),
+                    child: const MicroText(
+                      'Skip sign in for now',
+                      color: Color(0xFF667085),
+                      fontSize: 12,
+                    ),
                   ),
                   if (_registered)
                     TextButton(

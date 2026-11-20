@@ -29,7 +29,7 @@ class AuthService {
   Future<void> register(String user, String passcode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(userKey, user.trim().toLowerCase());
-    await prefs.setString(passKey, passcode);
+    await prefs.setString(passKey, passcode.trim());
     await prefs.setString(sessionKey, user.trim().toLowerCase());
   }
 
@@ -39,7 +39,7 @@ class AuthService {
     final storedUser = prefs.getString(userKey);
     final storedPass = prefs.getString(passKey);
     if (storedUser == null || storedPass == null) return false;
-    final ok = storedUser == user.trim().toLowerCase() && storedPass == passcode;
+    final ok = storedUser == user.trim().toLowerCase() && storedPass == passcode.trim();
     if (ok) await prefs.setString(sessionKey, storedUser);
     return ok;
   }

@@ -48,3 +48,13 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Photo proof: `ProofVerificationService` rejects old, dark or blank photos and uses ML Kit image labels to check the sink photo and the toothbrush photo. Two different fresh photos are required before the alarm disarms.
 - Snooze: `_ExerciseDialog` counts jumping jacks from phone accelerometer motion with a 350 ms cooldown; manual counting is available if no sensor is present.
 - Builds verified: Android debug/release, web, macOS. Release APK ~89 MB.
+
+
+## Authentication and sound picking (2026-11-20)
+
+- Sign-up accepts a handle or email and any non-empty passcode (1–64 characters), with a required repeat field.
+- Sign-in validates handle format, spaces, empty passcodes and mismatches inline and in a snackbar.
+- Guest access via "Skip sign in for now" prevents lockout anywhere in the flow.
+- Tests cover account creation, wrong passcode, one-character passcode and mismatched confirmation (5/5 passing).
+- Sound picker is reachable from first-run setup and the Add alarm dialog; it combines local files, bundled sounds and live scraped sounds.
+- Optional Vercel sound source via VERCEL_SOUNDS_URL (deployment must be public or VERCEL_BYPASS_TOKEN set).

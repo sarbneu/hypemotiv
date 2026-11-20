@@ -2,7 +2,10 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/services/audio_service.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/utils/sound_catalog.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 class SetupScreen extends StatefulWidget {
@@ -20,6 +23,7 @@ class _SetupScreenState extends State<SetupScreen> {
   );
   final TextEditingController _passcodeController = TextEditingController();
   int _disciplineIndex = 0;
+  SoundOption _selectedSound = defaultSoundOptions.first;
 
   static const List<String> _disciplines = <String>[
     'David Goggins',
@@ -92,9 +96,9 @@ class _SetupScreenState extends State<SetupScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
-                        const SectionLabel(
+                        SectionLabel(
                           'Alarm sound',
-                          trailing: 'Ready',
+                          trailing: _selectedSound.name,
                         ),
                         const SizedBox(height: 8),
                         const Waveform(
@@ -102,11 +106,27 @@ class _SetupScreenState extends State<SetupScreen> {
                           bars: 48,
                           height: 52,
                         ),
-                        const MicroText(
-                          'Pick a sound that gets you out of bed.',
-                          color: Color(0xFF667085),
-                          fontSize: 12,
-                          textAlign: TextAlign.center,
+                        TextButton.icon(
+                          icon: const Icon(Icons.play_arrow),
+                          label: const Text('Preview sound'),
+                          onPressed: () => AudioService().play(_selectedSound.url),
+                        ),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.music_note),
+                          label: const Text('Choose from meme sounds'),
+                          onPressed: () async {
+                            final SoundOption? picked = await Navigator.of(
+                              context,
+                            ).push<SoundOption>(
+                              MaterialPageRoute<SoundOption>(
+                                builder: (BuildContext context) =>
+                                    const SoundPickerScreen(),
+                              ),
+                            );
+                            if (picked == null || !mounted) return;
+                            setState(() => _selectedSound = picked);
+                            await AudioService().play(picked.url);
+                          },
                         ),
                       ],
                     ),

@@ -13,6 +13,8 @@ import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/sound_service.dart';
 import 'package:hypemotiv/services/tts_service.dart';
+import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/utils/sound_catalog.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 const List<Map<String, String>> kAlarmSounds = <Map<String, String>>[
@@ -562,34 +564,40 @@ class _ProtocolDialogState extends State<_ProtocolDialog> {
             decoration: const InputDecoration(labelText: 'Note'),
           ),
           const SizedBox(height: 12),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  initialValue: _soundIndex,
-                  decoration: const InputDecoration(labelText: 'Alarm sound'),
-                  items: <DropdownMenuItem<int>>[
-                    for (int i = 0; i < _soundOptions.length; i++)
-                      DropdownMenuItem<int>(
-                        value: i,
-                        child: Text(_soundOptions[i]['name'] ?? 'Sound'),
-                      ),
-                  ],
-                  onChanged: (int? value) {
-                    if (value != null) setState(() => _soundIndex = value);
-                  },
+          OutlinedButton.icon(
+            icon: const Icon(Icons.music_note),
+            label: Text(
+              'Alarm sound: ${_soundOptions[_soundIndex]['name'] ?? 'Sound'}',
+            ),
+            onPressed: () async {
+              final SoundOption? picked = await Navigator.of(context).push<SoundOption>(
+                MaterialPageRoute<SoundOption>(
+                  builder: (BuildContext context) => const SoundPickerScreen(),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Preview sound',
-                icon: const Icon(Icons.play_arrow),
-                onPressed: () {
-                  AudioService().play(
-                    _soundOptions[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
-                  );
-                },
-              ),
-            ],
+              );
+              if (picked == null || !mounted) return;
+              int index = _soundOptions.indexWhere(
+                (Map<String, String> option) =>
+                    option['name'] == picked.name && option['url'] == picked.url,
+              );
+              if (index < 0) {
+                _soundOptions.add(<String, String>{
+                  'name': picked.name,
+                  'url': picked.url,
+                });
+                index = _soundOptions.length - 1;
+              }
+              setState(() => _soundIndex = index);
+            },
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Preview selected sound'),
+            onPressed: () {
+              AudioService().play(
+                _soundOptions[_soundIndex]['url'] ?? AudioService.fallbackSoundUrl,
+              );
+            },
           ),
           const SizedBox(height: 12),
           Row(
