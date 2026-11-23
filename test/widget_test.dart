@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hypemotiv/main.dart';
 import 'package:hypemotiv/screens/login_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/services/proof_verification_service.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -116,6 +117,39 @@ void main() {
     expect(await service.selected(), <String>['maths', 'squats']);
     expect(await service.isRequired('photo'), isFalse);
     expect(await service.isRequired('maths'), isTrue);
+  });
+
+  test('photo proof requires fresh, distinct captures', () {
+    final ProofVerificationService service = ProofVerificationService();
+    final DateTime now = DateTime.now();
+    const String firstHash = '0000000000000000000000000000000000000000000000000000000000000000';
+    const String sameHash = '0000000000000000000000000000000000000000000000000000000000000000';
+    const String differentHash = '1111111111111111000000000000000000000000000000000000000000000000';
+
+    expect(ProofVerificationService.hashDistance(firstHash, sameHash), 0);
+    expect(ProofVerificationService.hashDistance(firstHash, differentHash), 16);
+
+    final ProofSignature first = ProofSignature(
+      hash: firstHash,
+      capturedAt: now,
+      brightness: 120,
+      variance: 500,
+    );
+    final ProofSignature tooSoon = ProofSignature(
+      hash: differentHash,
+      capturedAt: now.add(const Duration(seconds: 3)),
+      brightness: 120,
+      variance: 500,
+    );
+    final ProofSignature valid = ProofSignature(
+      hash: differentHash,
+      capturedAt: now.add(const Duration(seconds: 12)),
+      brightness: 120,
+      variance: 500,
+    );
+
+    expect(service.isDistinctCapture(first, tooSoon), isFalse);
+    expect(service.isDistinctCapture(first, valid), isTrue);
   });
 
 }

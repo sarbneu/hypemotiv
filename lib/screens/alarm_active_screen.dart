@@ -38,6 +38,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   final TextEditingController _mathController = TextEditingController();
   bool _mathSolved = false;
   int _proofStep = 0;
+  ProofSignature? _firstProofSignature;
   List<String> _requiredTasks = wakeTasks.map((WakeTask task) => task.id).toList();
 
   bool get _requireMaths => _requiredTasks.contains('maths');
@@ -125,7 +126,8 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     }
 
     setState(() => _uploading = true);
-    final ProofResult result = await ProofVerificationService().verify(
+    final ProofVerificationService verification = ProofVerificationService();
+    final ProofResult result = await verification.verify(
       File(picked.path),
       target,
     );
@@ -142,9 +144,22 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     );
     if (url == null) await ProofService.saveLocally(picked);
 
+    if (result.signature == null) {
+      _toast('Could not verify the photo. Try again.');
+      return;
+    }
     if (_proofStep == 0) {
+      _firstProofSignature = result.signature;
       setState(() => _proofStep = 1);
       _toast('Sink photo accepted. Now show your toothbrush.');
+      return;
+    }
+    final ProofSignature? first = _firstProofSignature;
+    if (first == null ||
+        !verification.isDistinctCapture(first, result.signature!)) {
+      _toast(
+        'Photos are too similar or too fast apart. Take a fresh second photo.',
+      );
       return;
     }
     await _disarmNow('Both photos accepted · Alarm stopped');
@@ -384,8 +399,8 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                                 const Spacer(),
                                 MicroText(
                                   _proofStep == 0
-                                      ? 'Photo 1 of 2: show your bathroom sink'
-                                      : 'Photo 2 of 2: show your toothbrush',
+                                      ? 'Photo 1 of 2: show your bathroom sink (fresh camera)'
+                                      : 'Photo 2 of 2: show your toothbrush (different photo)',
                                   color: const Color(0xFF1F2933),
                                   fontSize: 13,
                                 ),

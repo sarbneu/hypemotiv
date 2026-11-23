@@ -66,3 +66,11 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Selection persists via TaskSelectionService and is reachable from first-run setup and the Add alarm dialog.
 - AlarmActiveScreen honours the selection: maths/photo are skipped when unchecked, and snooze uses the selected exercise with motion-counted reps.
 - Tests cover default task selection and persistence (6/6 passing). Verified on emulator at 1080x2400.
+
+
+## Deterministic photo proof (2026-11-20)
+
+- Removed ML Kit image-label gating because it could accept wrong photos or reject correct ones.
+- Proof now uses deterministic checks only: camera freshness (max 2 minutes), brightness, image variance, an 8x8 perceptual hash, and a minimum 8-second gap between the two captures.
+- The second photo is rejected if it is visually too similar to the first (hash distance below 12).
+- Tests cover hash distance and capture distinctness (7/7 passing).

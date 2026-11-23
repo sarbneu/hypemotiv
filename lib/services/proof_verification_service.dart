@@ -1,7 +1,8 @@
-/// Checks that a wake-up proof photo is fresh, non-blank, and shows the target.
+/// Deterministic camera-proof checks for the wake-up alarm.
 ///
-/// Object labels come from ML Kit on the device. If the model is unavailable,
-/// the basic freshness and image checks still apply.
+/// No AI/object labels are used to decide whether the alarm can stop. Instead
+/// each proof must be a fresh camera capture, must not be blank or dark, and
+/// the second photo must be a genuinely different capture from the first.
 library;
 
 import 'dart:async';
@@ -9,25 +10,39 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+class ProofSignature {
+  const ProofSignature({
+    required this.hash,
+    required this.capturedAt,
+    required this.brightness,
+    required this.variance,
+  });
+
+  final String hash;
+  final DateTime capturedAt;
+  final double brightness;
+  final double variance;
+}
 
 class ProofResult {
   const ProofResult({
     required this.ok,
     required this.message,
-    this.labels = const <String>[],
+    this.signature,
   });
 
   final bool ok;
   final String message;
-  final List<String> labels;
+  final ProofSignature? signature;
 }
 
 class ProofVerificationService {
-  static const Map<String, List<String>> _keywords = <String, List<String>>{
-    'sink': <String>['sink', 'basin', 'faucet', 'tap', 'wash'],
-    'toothbrush': <String>['toothbrush', 'brush', 'teeth', 'toothpaste'],
-  };
+  /// A photo taken more than two minutes ago is not a live proof.
+  static const Duration maxPhotoAge = Duration(minutes: 2);
+
+  /// Two captures must be at least eight seconds apart and visually different.
+  static const Duration minGap = Duration(seconds: 8);
+  static const int minHashDistance = 12;
 
   Future<ProofResult> verify(File photo, String target) async {
     if (!await photo.exists()) {
@@ -36,10 +51,10 @@ class ProofVerificationService {
 
     final DateTime modified = (await photo.stat()).modified;
     final Duration age = DateTime.now().difference(modified);
-    if (age.inMinutes > 10) {
+    if (age > maxPhotoAge || age.inSeconds < -30) {
       return const ProofResult(
         ok: false,
-        message: 'Photo is too old. Take a new one now.',
+        message: 'That photo is not fresh. Take a new one now.',
       );
     }
 
@@ -56,28 +71,33 @@ class ProofVerificationService {
       pixelData.offsetInBytes,
       pixelData.lengthInBytes,
     );
-    double sum = 0;
-    double sumSquares = 0;
-    int count = 0;
-    for (int y = 0; y < image.height; y += 20) {
-      for (int x = 0; x < image.width; x += 20) {
+
+    final List<double> luminance = <double>[];
+    for (int y = 0; y < image.height; y += 16) {
+      for (int x = 0; x < image.width; x += 16) {
         final int index = (y * image.width + x) * 4;
         final int r = pixels[index];
         final int g = pixels[index + 1];
         final int b = pixels[index + 2];
-        final double luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-        sum += luminance;
-        sumSquares += luminance * luminance;
-        count++;
+        luminance.add(0.299 * r + 0.587 * g + 0.114 * b);
       }
     }
     image.dispose();
-    if (count == 0) {
+    if (luminance.isEmpty) {
       return const ProofResult(ok: false, message: 'Could not read the photo');
     }
 
-    final double mean = sum / count;
-    final double variance = (sumSquares / count) - (mean * mean);
+    double sum = 0;
+    for (final double value in luminance) {
+      sum += value;
+    }
+    final double mean = sum / luminance.length;
+    double varianceSum = 0;
+    for (final double value in luminance) {
+      varianceSum += (value - mean) * (value - mean);
+    }
+    final double variance = varianceSum / luminance.length;
+
     if (mean < 20) {
       return const ProofResult(
         ok: false,
@@ -91,39 +111,55 @@ class ProofVerificationService {
       );
     }
 
-    ImageLabeler? labeler;
-    try {
-      labeler = ImageLabeler(
-        options: ImageLabelerOptions(confidenceThreshold: 0.3),
-      );
-      final List<ImageLabel> labels =
-          await labeler.processImage(InputImage.fromFilePath(photo.path));
-      final List<String> texts = labels
-          .map((ImageLabel label) => label.label.toLowerCase())
-          .toList();
-      final List<String> wanted = _keywords[target] ?? const <String>[];
-      final bool matched = texts.any(
-        (String text) => wanted.any((String word) => text.contains(word)),
-      );
-      if (matched) {
-        return ProofResult(
-          ok: true,
-          message: 'Photo accepted for $target',
-          labels: texts,
-        );
-      }
-      return ProofResult(
-        ok: false,
-        message: 'Could not see a $target. Saw: ${texts.take(3).join(', ')}',
-        labels: texts,
-      );
-    } catch (_) {
-      return const ProofResult(
-        ok: true,
-        message: 'Basic photo check passed (object model unavailable)',
-      );
-    } finally {
-      await labeler?.close();
+    final String hash = _averageHash(pixels, image.width, image.height, mean);
+    return ProofResult(
+      ok: true,
+      message: 'Fresh camera photo accepted for $target',
+      signature: ProofSignature(
+        hash: hash,
+        capturedAt: modified,
+        brightness: mean,
+        variance: variance,
+      ),
+    );
+  }
+
+  /// True only when the second photo is a separate, visually different capture.
+  bool isDistinctCapture(ProofSignature first, ProofSignature second) {
+    final Duration gap = second.capturedAt.difference(first.capturedAt);
+    if (gap < minGap) return false;
+    return hashDistance(first.hash, second.hash) >= minHashDistance;
+  }
+
+  static int hashDistance(String a, String b) {
+    if (a.length != b.length) return 64;
+    int distance = 0;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) distance++;
     }
+    return distance;
+  }
+
+  static String _averageHash(
+    Uint8List pixels,
+    int width,
+    int height,
+    double mean,
+  ) {
+    const int grid = 8;
+    final StringBuffer hash = StringBuffer();
+    for (int gy = 0; gy < grid; gy++) {
+      for (int gx = 0; gx < grid; gx++) {
+        final int x = ((gx + 0.5) * width / grid).clamp(0, width - 1).toInt();
+        final int y = ((gy + 0.5) * height / grid).clamp(0, height - 1).toInt();
+        final int index = (y * width + x) * 4;
+        final double luminance =
+            0.299 * pixels[index] +
+            0.587 * pixels[index + 1] +
+            0.114 * pixels[index + 2];
+        hash.write(luminance >= mean ? '1' : '0');
+      }
+    }
+    return hash.toString();
   }
 }
