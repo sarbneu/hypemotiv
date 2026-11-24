@@ -29,16 +29,21 @@ class _SetupScreenState extends State<SetupScreen> {
   SoundOption _selectedSound = defaultSoundOptions.first;
   List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
 
+  // Clean, non-profane morning rage presets backed by bundled audio.
   static const List<String> _disciplines = <String>[
-    'David Goggins',
-    'Brutal friend',
-    'Bass-boosted music',
+    'Military Wake Up',
+    'Nuclear Siren',
+    'Danger Siren',
+    'Bass Boosted Alarm',
+    'Airhorn',
   ];
 
   static const List<IconData> _disciplineIcons = <IconData>[
     Icons.emoji_events,
-    Icons.record_voice_over,
+    Icons.notifications_active,
+    Icons.warning_amber,
     Icons.graphic_eq,
+    Icons.volume_up,
   ];
 
   @override
@@ -229,15 +234,21 @@ class _SetupScreenState extends State<SetupScreen> {
                   const SizedBox(height: 20),
 
                   const SectionLabel(
-                    'Choose your alarm style',
-                    trailing: 'One choice',
+                    'Morning rage presets',
+                    trailing: 'Clean audio',
                   ),
                   const SizedBox(height: 10),
                   for (int i = 0; i < _disciplines.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: GestureDetector(
-                        onTap: () => setState(() => _disciplineIndex = i),
+                        onTap: () async {
+                          setState(() => _disciplineIndex = i);
+                          if (i < morningRageOptions.length) {
+                            _selectedSound = morningRageOptions[i];
+                            await AudioService().play(_selectedSound.url);
+                          }
+                        },
                         child: CyberCard(
                           glow: _disciplineIndex == i,
                           padding: const EdgeInsets.symmetric(

@@ -1,7 +1,7 @@
 /// HypeMotiv extended API client.
 ///
 /// Capabilities the base Oracle REST bridge does not have:
-///   1. myinstants.com sound scraping  (GET  /api/sounds?q=)
+///   1. Curated local sound pack        (bundled assets, no scraping)
 ///   2. Oracle BLOB file storage       (POST /api/files/upload, GET /api/files/:id)
 ///   3. Video -> audio extraction      (POST /api/extract-audio)
 ///   4. Link -> audio ripper           (POST /api/rip)
@@ -23,6 +23,7 @@ import 'package:http/http.dart' as http;
 
 import '../utils/oracle_config.dart';
 import 'sound_service.dart';
+import '../utils/sound_catalog.dart';
 
 /// One bounding box from the optional toothbrush detector.
 class DetectionBox {
@@ -160,27 +161,26 @@ class HypeApi {
     }
   }
 
-  /// Search myinstants.com through the backend scraper.
-  /// Falls back to the bundled offline sound list if the backend is down.
+  /// Return the small curated sound pack bundled with the app.
+  /// No website scraping: these are local assets committed to the project.
   Future<List<Sound>> fetchSounds({String query = '', int limit = 50}) async {
-    try {
-      final uri = Uri.parse('$base/sounds').replace(
-        queryParameters: {'q': query, 'limit': '$limit'},
-      );
-      final response = await http.get(uri).timeout(_timeout);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final list = (data['sounds'] as List<dynamic>?) ?? const [];
-        final sounds = list
-            .whereType<Map>()
-            .map((e) => Sound.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-        if (sounds.isNotEmpty) return sounds.take(limit).toList();
-      }
-    } catch (_) {
-      // offline
-    }
-    return SoundService().fetchSounds(limit: limit);
+    final String q = query.trim().toLowerCase();
+    return defaultSoundOptions
+        .where(
+          (SoundOption option) =>
+              q.isEmpty || option.name.toLowerCase().contains(q),
+        )
+        .take(limit)
+        .map(
+          (SoundOption option) => Sound(
+            id: option.name,
+            name: option.name,
+            url: option.url,
+            category: 'Bundled',
+            imageUrl: '',
+          ),
+        )
+        .toList();
   }
 
   /// Upload a local file (meme audio, proof photo, ripped audio) into Oracle

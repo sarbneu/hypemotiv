@@ -1,4 +1,4 @@
-/// Sound choices shown in the alarm picker.
+/// Curated, locally bundled alarm sounds. No website scraping at runtime.
 library;
 
 class SoundOption {
@@ -8,29 +8,35 @@ class SoundOption {
   final String url;
 }
 
+const String _audioDir = 'assets/audio';
+
 const List<SoundOption> defaultSoundOptions = <SoundOption>[
   SoundOption(
-    name: 'Bruh',
-    url: 'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3',
+    name: 'Military Wake Up',
+    url: '$_audioDir/military-bugle-wake-up-call.mp3',
+  ),
+  SoundOption(
+    name: 'Nuclear Siren',
+    url: '$_audioDir/nuclear-alarm-siren.mp3',
+  ),
+  SoundOption(
+    name: 'Danger Siren',
+    url: '$_audioDir/danger-siren-alarm.mp3',
+  ),
+  SoundOption(
+    name: 'Bass Boosted Alarm',
+    url: '$_audioDir/samsung-bass-boosted-alarm.mp3',
   ),
   SoundOption(
     name: 'Airhorn',
-    url: 'https://www.myinstants.com/media/sounds/airhorn.mp3',
+    url: '$_audioDir/airhorn.mp3',
   ),
   SoundOption(
-    name: 'Roblox OOF',
-    url: 'https://www.myinstants.com/media/sounds/roblox-oof.mp3',
-  ),
-  SoundOption(
-    name: 'Emotional Damage',
-    url: 'https://www.myinstants.com/media/sounds/emotional-damage.mp3',
-  ),
-  SoundOption(
-    name: 'FBI Open Up',
-    url: 'https://www.myinstants.com/media/sounds/fbi-open-up.mp3',
-  ),
-  SoundOption(
-    name: 'Bell',
-    url: 'https://www.myinstants.com/media/sounds/bell.mp3',
+    name: 'Bruh',
+    url: '$_audioDir/bruh.mp3',
   ),
 ];
+
+/// Clean, non-profane "morning rage" presets shown in first-run setup.
+final List<SoundOption> morningRageOptions =
+    defaultSoundOptions.take(5).toList();

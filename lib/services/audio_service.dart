@@ -34,8 +34,7 @@ class AudioService {
   }
 
   /// Verified reachable meme sound (HTTP 200, audio/mpeg).
-  static const String fallbackSoundUrl =
-      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
+  static const String fallbackSoundUrl = 'assets/audio/bruh.mp3';
 
   static const Duration _fetchTimeout = Duration(seconds: 15);
 
@@ -85,7 +84,10 @@ class AudioService {
       );
       // On web, audioplayers creates an HTMLAudioElement with
       // crossOrigin=anonymous. Feeding bytes avoids that CORS path entirely.
-      if (kIsWeb) {
+      // Bundled sounds are real local assets — no scraping, no network, no CORS.
+      if (source.startsWith('assets/')) {
+        await _audioPlayer.setSourceAsset(source);
+      } else if (kIsWeb) {
         final http.Response response =
             await http.get(Uri.parse(playable)).timeout(_fetchTimeout);
         await _setSourceFromResponse(response, playable);
@@ -133,7 +135,9 @@ class AudioService {
     try {
       await _audioPlayer.stop();
       final String url = HypeApi.playableUrl(fallbackSoundUrl);
-      if (kIsWeb) {
+      if (url.startsWith('assets/')) {
+        await _audioPlayer.setSourceAsset(url);
+      } else if (kIsWeb) {
         final http.Response response =
             await http.get(Uri.parse(url)).timeout(_fetchTimeout);
         await _setSourceFromResponse(response, url);
