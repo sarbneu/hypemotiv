@@ -37,6 +37,8 @@ class AudioService {
   static const String fallbackSoundUrl =
       'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
 
+  static const Duration _fetchTimeout = Duration(seconds: 15);
+
   late AudioPlayer _audioPlayer;
 
   Future<void> init() async {
@@ -67,8 +69,16 @@ class AudioService {
   Future<void> play(String audioUrl, {bool loop = false}) async {
     final String source =
         audioUrl.trim().isEmpty ? fallbackSoundUrl : audioUrl.trim();
-    final String playable = HypeApi.playableUrl(source);
     try {
+      // On web, only http(s) can be fetched. Reject file://, blob:, data: and
+      // custom schemes before http.get produces a confusing "Invalid scheme".
+      if (kIsWeb && HypeApi.isUnsupportedAudioScheme(source)) {
+        throw StateError(
+          'Unsupported audio scheme in "$source" '
+          '(only http/https URLs can be played on web)',
+        );
+      }
+      final String playable = HypeApi.playableUrl(source);
       await _audioPlayer.stop();
       await _audioPlayer.setReleaseMode(
         loop ? ReleaseMode.loop : ReleaseMode.release,
@@ -77,11 +87,8 @@ class AudioService {
       // crossOrigin=anonymous. Feeding bytes avoids that CORS path entirely.
       if (kIsWeb) {
         final http.Response response =
-            await http.get(Uri.parse(playable)).timeout(const Duration(seconds: 15));
-        if (response.statusCode != 200) {
-          throw StateError('Audio HTTP ${response.statusCode}');
-        }
-        await _audioPlayer.setSourceBytes(response.bodyBytes);
+            await http.get(Uri.parse(playable)).timeout(_fetchTimeout);
+        await _setSourceFromResponse(response, playable);
       } else if (source.startsWith('/')) {
         // Custom sounds saved by CustomSoundService on the device.
         await _audioPlayer.setSourceDeviceFile(source);
@@ -95,14 +102,41 @@ class AudioService {
     }
   }
 
+  /// Validate the web response before handing it to audioplayers: an HTML
+  /// error page or an empty/HTML body would otherwise be "played" silently.
+  /// MIME type is decided by the backend proxy; the client checks magic bytes.
+  Future<void> _setSourceFromResponse(
+    http.Response response,
+    String url,
+  ) async {
+    if (response.statusCode != 200) {
+      throw StateError('Audio HTTP ${response.statusCode} from $url');
+    }
+    final int length = response.bodyBytes.length;
+    if (length == 0) {
+      throw StateError('Empty audio response from $url');
+    }
+    final String? format = HypeApi.detectAudioFormat(response.bodyBytes);
+    if (format == null) {
+      final String kind = HypeApi.looksLikeHtml(response.bodyBytes)
+          ? 'HTML/error page'
+          : 'unrecognised bytes';
+      throw StateError(
+        'Response from $url is not audio ($kind, $length bytes)',
+      );
+    }
+    debugPrint('AudioService: fetched $format audio ($length bytes) from $url');
+    await _audioPlayer.setSourceBytes(response.bodyBytes);
+  }
+
   Future<void> _playFallback() async {
     try {
       await _audioPlayer.stop();
       final String url = HypeApi.playableUrl(fallbackSoundUrl);
       if (kIsWeb) {
         final http.Response response =
-            await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
-        await _audioPlayer.setSourceBytes(response.bodyBytes);
+            await http.get(Uri.parse(url)).timeout(_fetchTimeout);
+        await _setSourceFromResponse(response, url);
       } else {
         await _audioPlayer.setSourceUrl(url);
       }

@@ -11,6 +11,7 @@ import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
+import 'package:hypemotiv/screens/pose_exercise_screen.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -176,20 +177,39 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       await _snooze({}, duration: const Duration(minutes: 5));
       return;
     }
-    final bool? accepted = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => _ExerciseDialog(
-        label: exercise['label']! as String,
-        reps: exercise['reps']! as int,
-      ),
-    );
+    final String label = exercise['label']! as String;
+    final int target = exercise['reps']! as int;
+    if (label == 'jumping jacks') {
+      final int? counted = await Navigator.of(context).push<int>(
+        MaterialPageRoute<int>(
+          builder: (BuildContext context) => PoseExerciseScreen(
+            label: label,
+            targetReps: target,
+          ),
+        ),
+      );
+      if (!mounted) return;
+      if (counted == kPoseCameraUnavailable) {
+        // Camera unavailable: fall back to the existing manual dialog.
+        final bool? manual = await _showExerciseDialog(label: label, reps: target);
+        if (manual != true || !mounted) return;
+        await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
+        return;
+      }
+      if (counted == null || counted <= 0) return;
+      await _snooze(<String, Object>{'label': label, 'reps': counted}, duration: const Duration(minutes: 5));
+      return;
+    }
+    // Squats / push-ups keep the accelerometer detector + manual fallback.
+    final bool? accepted = await _showExerciseDialog(label: label, reps: target);
     if (accepted != true || !mounted) return;
-    await _snooze(
-      <String, Object>{
-        'label': exercise['label']!,
-        'reps': exercise['reps']!,
-      },
-      duration: const Duration(minutes: 5),
+    await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
+  }
+
+  Future<bool?> _showExerciseDialog({required String label, required int reps}) {
+    return showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => _ExerciseDialog(label: label, reps: reps),
     );
   }
 

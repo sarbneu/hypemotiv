@@ -15,7 +15,9 @@
  *   POST /api/files/upload               - Multipart upload -> Oracle BLOB / local disk
  *   GET  /api/files?userId=              - List stored file metadata
  *   GET  /api/files/:id                  - Stream stored bytes (audio/video playable)
- *   POST /api/rip                        - Direct media download or yt-dlp audio extraction
+ *   POST /api/extract-audio              - Video upload -> MP3 (yt-dlp, ffmpeg fallback)
+ *   POST /api/rip                        - Direct media / page-audio / yt-dlp extraction
+ *   POST /api/detect/toothbrush          - Roboflow inference (optional, safe fallback)
  *   POST /api/email/send                 - Nodemailer SMTP, or outbox.log demo fallback
  *
  * Oracle Configuration (via .env):
@@ -636,6 +638,32 @@ if (process.env.VERCEL_SOUNDS_URL) {
   try { AUDIO_PROXY_HOSTS.add(new URL(process.env.VERCEL_SOUNDS_URL).hostname); } catch (_) {}
 }
 
+// Set AUDIO_PROXY_ALLOW_ALL=true to accept any http(s) audio host. The allowlist
+// above (plus AUDIO_PROXY_EXTRA_HOSTS) stays active when this is not true.
+const AUDIO_PROXY_ALLOW_ALL = String(process.env.AUDIO_PROXY_ALLOW_ALL || '')
+  .trim().toLowerCase() === 'true';
+
+// Normalize Content-Type by extension. The first five are the required mapping;
+// the rest are common audio formats accepted for convenience.
+const AUDIO_PROXY_MIME_BY_EXT = {
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
+  '.ogg': 'audio/ogg', '.webm': 'audio/webm',
+  '.aac': 'audio/aac', '.oga': 'audio/ogg', '.opus': 'audio/ogg',
+  '.flac': 'audio/flac', '.m4b': 'audio/mp4', '.mka': 'audio/x-matroska',
+};
+
+// Extensions that are definitely not audio — reject before downloading.
+const NON_AUDIO_EXT_RE = /\.(?:html?|php|phtml|js|mjs|cjs|css|json|xml|txt|md|csv|ya?ml|png|jpe?g|gif|webp|bmp|svg|ico|pdf|zip|rar|7z|gz|tgz|exe|dmg|pkg|apk|doc|docx|xls|xlsx|ppt|pptx)$/i;
+
+/** Return an audio MIME type (extension wins), or null when not audio. */
+function proxyAudioMime(pathname, contentType) {
+  const ext = path.extname(String(pathname || '')).toLowerCase();
+  const fromExt = AUDIO_PROXY_MIME_BY_EXT[ext];
+  if (fromExt) return fromExt;
+  const ct = String(contentType || '').split(';')[0].trim().toLowerCase();
+  return /^audio\/[a-z0-9.+-]+$/i.test(ct) ? ct : null;
+}
+
 async function fetchVercelSounds(query) {
   const raw = String(process.env.VERCEL_SOUNDS_URL || '').trim();
   if (!raw) return [];
@@ -674,17 +702,35 @@ app.get('/api/sounds/proxy', async (req, res) => {
     return res.status(400).json({ error: 'A valid url query parameter is required' });
   }
   if (!['http:', 'https:'].includes(target.protocol) ||
-      !AUDIO_PROXY_HOSTS.has(target.hostname)) {
+      (!AUDIO_PROXY_ALLOW_ALL && !AUDIO_PROXY_HOSTS.has(target.hostname))) {
     return res.status(403).json({ error: 'Audio host is not allowed' });
+  }
+  if (NON_AUDIO_EXT_RE.test(target.pathname)) {
+    return res.status(415).json({ error: 'Only audio URLs are allowed' });
   }
   try {
     const upstream = await fetch(target, {
       headers: { 'User-Agent': USER_AGENT },
       signal: AbortSignal.timeout(12000),
+      redirect: 'follow',
     });
     if (!upstream.ok) return res.status(502).json({ error: `Upstream HTTP ${upstream.status}` });
+    const declared = parseInt(upstream.headers.get('content-length') || '0', 10);
+    if (declared > MAX_UPLOAD_MB * 1024 * 1024) {
+      return res.status(413).json({ error: `Audio too large (max ${MAX_UPLOAD_MB}MB)` });
+    }
     const bytes = Buffer.from(await upstream.arrayBuffer());
-    res.set('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
+    if (bytes.length > MAX_UPLOAD_MB * 1024 * 1024) {
+      return res.status(413).json({ error: `Audio too large (max ${MAX_UPLOAD_MB}MB)` });
+    }
+    const mime = proxyAudioMime(target.pathname, upstream.headers.get('content-type'));
+    if (!mime) {
+      return res.status(415).json({
+        error: 'Upstream content is not audio',
+        details: 'Expected an audio/* content type or a recognized audio extension',
+      });
+    }
+    res.set('Content-Type', mime);
     res.set('Content-Length', String(bytes.length));
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Cache-Control', 'public, max-age=86400');
@@ -896,8 +942,48 @@ app.get('/api/files/:id', async (req, res) => {
 const VIDEO_HOST_RE = /(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com|vimeo\.com|reddit\.com)/i;
 const MEDIA_EXT_RE = /\.(mp3|mp4|m4a|aac|wav|ogg|opus|webm|mov|flac|mkv|mka)(\?|#|$)/i;
 
+const DEFAULT_YTDLP_BIN = '/Users/sarbeshwor/Library/Python/3.13/bin/yt-dlp';
+const DEFAULT_FFMPEG_BIN = '/Users/sarbeshwor/.hermes/tools/ffmpeg-9.0.1-darwin-arm64/ffmpeg';
+
 function ytdlpPath() {
-  return process.env.YTDLP_PATH || 'yt-dlp';
+  const override = String(process.env.YTDLP_PATH || '').trim();
+  if (override) return override;
+  return fs.existsSync(DEFAULT_YTDLP_BIN) ? DEFAULT_YTDLP_BIN : 'yt-dlp';
+}
+
+function ffmpegPath() {
+  const override = String(process.env.FFMPEG_PATH || '').trim();
+  if (override) return override;
+  return fs.existsSync(DEFAULT_FFMPEG_BIN) ? DEFAULT_FFMPEG_BIN : 'ffmpeg';
+}
+
+/** Remove every temp artifact created for a rip/extract job. */
+function cleanupTempFiles(base) {
+  const dir = path.dirname(base);
+  const prefix = path.basename(base);
+  try {
+    for (const name of fs.readdirSync(dir)) {
+      if (!name.startsWith(prefix)) continue;
+      try { fs.unlinkSync(path.join(dir, name)); } catch (_) { /* ignore */ }
+    }
+  } catch (_) { /* ignore */ }
+}
+
+/** Locate a non-empty yt-dlp output file sharing the given temp base name. */
+function findTempOutput(base, wantedExt) {
+  const dir = path.dirname(base);
+  const prefix = path.basename(base);
+  try {
+    const names = fs.readdirSync(dir)
+      .filter((n) => n.startsWith(prefix + '.') &&
+        (!wantedExt || n.toLowerCase().endsWith(wantedExt)))
+      .sort();
+    for (const name of names) {
+      const full = path.join(dir, name);
+      if (fs.existsSync(full) && fs.statSync(full).size > 0) return full;
+    }
+  } catch (_) { /* ignore */ }
+  return null;
 }
 
 async function ytdlpAvailable() {
@@ -953,10 +1039,60 @@ async function ripWithYtdlp(url) {
     }
     return { buffer, mimeType: detectMime(produced, null), fileName: path.basename(produced) };
   } finally {
-    for (const p of [tmpBase, `${tmpBase}.mp3`, `${tmpBase}.m4a`, `${tmpBase}.webm`, `${tmpBase}.mp4`]) {
-      try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (_) { /* ignore */ }
-    }
+    cleanupTempFiles(tmpBase);
   }
+}
+
+/**
+ * Find an explicit audio/media URL referenced by a non-media page.
+ * Supports og:audio, twitter:player:stream, <audio src>, <source src> and
+ * JSON-LD contentUrl. Never returns the page URL itself.
+ */
+function extractMediaUrlFromHtml(html, pageUrl) {
+  if (!html || typeof html !== 'string') return null;
+  const $ = cheerio.load(html);
+  const candidates = [];
+  const addCandidate = (value) => {
+    if (!value) return;
+    const raw = String(value).trim().split(/\s+/)[0];
+    if (!raw) return;
+    try {
+      const resolved = new URL(raw, pageUrl);
+      if (resolved.protocol === 'http:' || resolved.protocol === 'https:') {
+        candidates.push(resolved.toString());
+      }
+    } catch (_) { /* ignore malformed reference */ }
+  };
+
+  $('meta[property="og:audio"], meta[name="og:audio"], ' +
+    'meta[property="twitter:player:stream"], meta[name="twitter:player:stream"]')
+    .each((_, el) => addCandidate($(el).attr('content')));
+  $('audio[src], source[src]').each((_, el) => addCandidate($(el).attr('src')));
+
+  $('script[type="application/ld+json"]').each((_, el) => {
+    let data;
+    try { data = JSON.parse($(el).html() || $(el).text() || ''); }
+    catch (_) { return; }
+    const visit = (node, depth) => {
+      if (depth > 12 || !node || typeof node !== 'object') return;
+      if (Array.isArray(node)) {
+        for (const item of node) visit(item, depth + 1);
+        return;
+      }
+      if (typeof node.contentUrl === 'string') addCandidate(node.contentUrl);
+      if (typeof node.url === 'string' && MEDIA_EXT_RE.test(node.url)) addCandidate(node.url);
+      for (const key of Object.keys(node)) {
+        if (key !== 'contentUrl') visit(node[key], depth + 1);
+      }
+    };
+    visit(data, 0);
+  });
+
+  if (candidates.length === 0) return null;
+  const unique = [...new Set(candidates)];
+  return unique.find((u) => {
+    try { return MEDIA_EXT_RE.test(new URL(u).pathname); } catch (_) { return false; }
+  }) || unique[0];
 }
 
 app.post('/api/rip', async (req, res) => {
@@ -974,19 +1110,29 @@ app.post('/api/rip', async (req, res) => {
     } else if (VIDEO_HOST_RE.test(target)) {
       ripped = await ripWithYtdlp(target);
     } else {
-      // Unknown host: try a direct fetch first, fall back to yt-dlp.
+      // Non-media page URL: scrape for an EXPLICIT audio URL and download that
+      // exact URL. Never fall back to bundled/unrelated meme sounds.
+      let mediaUrl = null;
       try {
-        ripped = await downloadDirect(target);
-      } catch (directErr) {
-        if (await ytdlpAvailable()) {
-          ripped = await ripWithYtdlp(target);
-        } else {
-          console.warn('[rip] direct download failed:', directErr.message);
-          return jsonError(res, 503, 'Install yt-dlp: brew install yt-dlp', {
-            details: directErr.message,
-          });
-        }
+        const page = await fetch(target, {
+          headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'en-US,en;q=0.9' },
+          signal: AbortSignal.timeout(15000),
+          redirect: 'follow',
+        });
+        if (!page.ok) throw new Error(`page HTTP ${page.status}`);
+        mediaUrl = extractMediaUrlFromHtml(await page.text(), target);
+      } catch (pageErr) {
+        console.warn('[rip] page scrape failed:', pageErr.message);
       }
+      if (!mediaUrl) {
+        return jsonError(res, 422, 'No downloadable audio URL found on the page', {
+          details: 'Expected og:audio, twitter:player:stream, an <audio>/<source> src, or JSON-LD contentUrl. No bundled fallback is used.',
+        });
+      }
+      ripped = await downloadDirect(mediaUrl);
+      try {
+        ripped.fileName = decodeURIComponent(path.basename(new URL(mediaUrl).pathname)) || undefined;
+      } catch (_) { /* keep generated name */ }
     }
 
     let fileName = ripped.fileName;
@@ -1014,6 +1160,156 @@ app.post('/api/rip', async (req, res) => {
     if (err.status === 503) return jsonError(res, 503, err.message);
     return jsonError(res, 502, 'Failed to rip media', { details: err.message });
   }
+});
+
+// ---------------------------------------------------------------------------
+// NEW: video -> MP3 extraction (yt-dlp first, ffmpeg only as fallback)
+// ---------------------------------------------------------------------------
+const VIDEO_EXT_FOR_EXTRACT = /\.(mp4|mov|webm|mkv|avi|m4v|flv|wmv|mpeg|mpg|3gp)$/i;
+
+app.post('/api/extract-audio', (req, res) => {
+  upload.single('file')(req, res, async (multerErr) => {
+    if (multerErr) {
+      if (multerErr.code === 'LIMIT_FILE_SIZE') {
+        return jsonError(res, 413, `File too large (max ${MAX_UPLOAD_MB}MB)`);
+      }
+      return jsonError(res, 400, 'Upload failed', { details: multerErr.message });
+    }
+    if (!req.file) return jsonError(res, 400, "multipart field 'file' is required");
+    const fileMime = String(req.file.mimetype || '').toLowerCase();
+    const originalName = path.basename(String(req.file.originalname || 'video'));
+    if (!fileMime.startsWith('video/') && !VIDEO_EXT_FOR_EXTRACT.test(originalName)) {
+      return jsonError(res, 415, "multipart field 'file' must be a video/* file");
+    }
+
+    const tmpBase = path.join(require('os').tmpdir(), `hypemotiv-extract-${crypto.randomUUID()}`);
+    const srcExt = (path.extname(originalName).toLowerCase().match(/^\.[a-z0-9]+$/) || ['.mp4'])[0];
+    const inputPath = `${tmpBase}${srcExt}`;
+    const outputPath = `${tmpBase}.mp3`;
+    let produced = null;
+    let lastError = null;
+
+    try {
+      fs.writeFileSync(inputPath, req.file.buffer);
+
+      // 1) yt-dlp extracts the audio track directly to MP3 (never a playlist).
+      try {
+        await execFileAsync(ytdlpPath(), [
+          '--extract-audio', '--audio-format', 'mp3', '--no-playlist',
+          '-o', `${tmpBase}.%(ext)s`, inputPath,
+        ], { timeout: 180000, maxBuffer: 8 * 1024 * 1024 });
+        produced = fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0
+          ? outputPath : findTempOutput(tmpBase, '.mp3');
+      } catch (err) {
+        lastError = err;
+        console.warn('[extract-audio] yt-dlp failed, trying ffmpeg:', err.message);
+      }
+
+      // 2) ffmpeg fallback — only when yt-dlp failed or produced nothing.
+      if (!produced) {
+        try {
+          await execFileAsync(ffmpegPath(), [
+            '-y', '-i', inputPath, '-vn', '-acodec', 'libmp3lame', outputPath,
+          ], { timeout: 180000, maxBuffer: 8 * 1024 * 1024 });
+          produced = fs.existsSync(outputPath) && fs.statSync(outputPath).size > 0
+            ? outputPath : findTempOutput(tmpBase, '.mp3');
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      if (!produced) {
+        throw new Error(`Could not extract audio${lastError ? `: ${lastError.message}` : ''}`);
+      }
+      const buffer = fs.readFileSync(produced);
+      if (buffer.length > MAX_UPLOAD_MB * 1024 * 1024) {
+        return jsonError(res, 413, `Extracted audio too large (max ${MAX_UPLOAD_MB}MB)`);
+      }
+      const baseName = originalName.replace(/\.[^.]+$/, '').slice(0, 240) || 'audio';
+      const saved = await storeFile(
+        buffer,
+        `${baseName}.mp3`,
+        'audio/mpeg',
+        'audio',
+        String(req.body.userId || 'demo').slice(0, 100),
+        publicBaseUrl(req)
+      );
+      return res.status(201).json({
+        success: true,
+        fileId: saved.fileId,
+        url: saved.url,
+        filename: saved.fileName,
+        storage: saved.storage,
+      });
+    } catch (err) {
+      console.error('[extract-audio] error:', err.message);
+      return jsonError(res, 502, 'Failed to extract audio', { details: err.message });
+    } finally {
+      cleanupTempFiles(tmpBase);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// NEW: Roboflow toothbrush detection (optional; app falls back when disabled)
+// ---------------------------------------------------------------------------
+app.post('/api/detect/toothbrush', (req, res) => {
+  const apiKey = String(process.env.ROBOFLOW_API_KEY || '').trim();
+  const modelId = String(process.env.ROBOFLOW_MODEL_ID || '').trim();
+  if (!apiKey || !modelId) {
+    // HTTP 200 + configured:false lets the app use its local fallback.
+    return res.json({ success: false, configured: false, detections: [] });
+  }
+  upload.single('file')(req, res, async (multerErr) => {
+    if (multerErr) {
+      if (multerErr.code === 'LIMIT_FILE_SIZE') {
+        return jsonError(res, 413, `File too large (max ${MAX_UPLOAD_MB}MB)`);
+      }
+      return jsonError(res, 400, 'Upload failed', { details: multerErr.message });
+    }
+    if (!req.file) return jsonError(res, 400, "multipart field 'file' is required");
+    const imageMime = String(req.file.mimetype || '').toLowerCase();
+    const originalName = path.basename(String(req.file.originalname || 'image.jpg'));
+    if (!imageMime.startsWith('image/') && !/\.(jpe?g|png|webp|bmp|gif)$/i.test(originalName)) {
+      return jsonError(res, 415, "multipart field 'file' must be an image/* file");
+    }
+
+    const version = String(process.env.ROBOFLOW_VERSION || '1').trim() || '1';
+    try {
+      // Node 18+ ships fetch / FormData / Blob — no extra dependency needed.
+      const form = new FormData();
+      form.append('file', new Blob([req.file.buffer], {
+        type: imageMime.startsWith('image/') ? imageMime : 'image/jpeg',
+      }), originalName || 'image.jpg');
+      const endpoint = `https://detect.roboflow.com/${encodeURIComponent(modelId)}/${encodeURIComponent(version)}?api_key=${encodeURIComponent(apiKey)}`;
+      const upstream = await fetch(endpoint, {
+        method: 'POST',
+        body: form,
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!upstream.ok) {
+        const detail = (await upstream.text().catch(() => '')).slice(0, 300);
+        console.warn('[detect] Roboflow HTTP', upstream.status, detail);
+        return jsonError(res, 502, 'Roboflow inference failed', { details: `HTTP ${upstream.status}` });
+      }
+      let payload;
+      try { payload = await upstream.json(); }
+      catch (_) { return jsonError(res, 502, 'Roboflow returned invalid JSON'); }
+      const predictions = payload && Array.isArray(payload.predictions) ? payload.predictions : [];
+      const detections = predictions.map((p) => ({
+        class: String(p.class ?? p.className ?? p.label ?? ''),
+        confidence: Number(p.confidence ?? 0),
+        x: Number(p.x ?? 0),
+        y: Number(p.y ?? 0),
+        width: Number(p.width ?? 0),
+        height: Number(p.height ?? 0),
+      })).filter((d) => d.class);
+      return res.json({ success: true, detections });
+    } catch (err) {
+      console.error('[detect] Roboflow error:', err.message);
+      return jsonError(res, 502, 'Roboflow inference unavailable', { details: err.message });
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

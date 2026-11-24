@@ -1,14 +1,17 @@
-/// Deterministic camera-proof checks for the wake-up alarm.
+/// Camera-proof checks for the wake-up alarm.
 ///
-/// No AI/object labels are used to decide whether the alarm can stop. Instead
-/// each proof must be a fresh camera capture, must not be blank or dark, and
-/// the second photo must be a genuinely different capture from the first.
+/// Every proof must be a fresh, non-blank camera capture, and the second photo
+/// must be a genuinely different capture from the first. For the toothbrush
+/// target an optional backend detector adds an object check; when the detector
+/// is not configured the deterministic checks alone are sufficient.
 library;
 
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+
+import 'package:hypemotiv/services/hype_api.dart';
 
 class ProofSignature {
   const ProofSignature({
@@ -43,6 +46,9 @@ class ProofVerificationService {
   /// Two captures must be at least eight seconds apart and visually different.
   static const Duration minGap = Duration(seconds: 8);
   static const int minHashDistance = 12;
+
+  /// Minimum detector confidence accepted for the toothbrush target.
+  static const double minToothbrushConfidence = 0.5;
 
   Future<ProofResult> verify(File photo, String target) async {
     if (!await photo.exists()) {
@@ -112,15 +118,90 @@ class ProofVerificationService {
     }
 
     final String hash = _averageHash(pixels, image.width, image.height, mean);
+    final ProofSignature signature = ProofSignature(
+      hash: hash,
+      capturedAt: modified,
+      brightness: mean,
+      variance: variance,
+    );
+
+    // Deterministic checks always run first. The toothbrush target adds an
+    // object check on top of them (never instead of them).
+    if (target.trim().toLowerCase().contains('toothbrush')) {
+      return _verifyToothbrush(
+        photo: photo,
+        target: target,
+        signature: signature,
+      );
+    }
     return ProofResult(
       ok: true,
       message: 'Fresh camera photo accepted for $target',
-      signature: ProofSignature(
-        hash: hash,
-        capturedAt: modified,
-        brightness: mean,
-        variance: variance,
-      ),
+      signature: signature,
+    );
+  }
+
+  Future<ProofResult> _verifyToothbrush({
+    required File photo,
+    required String target,
+    required ProofSignature signature,
+  }) async {
+    final Map<String, dynamic>? result =
+        await HypeApi().detectToothbrush(photo);
+
+    if (result != null && result['configured'] == false) {
+      // Server reachable, but no detector model installed: keep the
+      // deterministic pass and say why the object check was skipped.
+      return ProofResult(
+        ok: true,
+        message: 'Fresh camera photo accepted for $target '
+            '(toothbrush detector unavailable on the backend; '
+            'deterministic checks passed)',
+        signature: signature,
+      );
+    }
+    if (result == null) {
+      return const ProofResult(
+        ok: false,
+        message: 'Toothbrush could not be verified: the detector did not '
+            'respond. Check the connection and try again.',
+      );
+    }
+
+    final dynamic rawDetections = result['detections'];
+    final List<DetectionBox> boxes = rawDetections is List
+        ? rawDetections.whereType<DetectionBox>().toList()
+        : <DetectionBox>[];
+    DetectionBox? best;
+    for (final DetectionBox box in boxes) {
+      if (box.confidence >= minToothbrushConfidence &&
+          (best == null || box.confidence > best.confidence)) {
+        best = box;
+      }
+    }
+
+    final String seen = boxes.isEmpty
+        ? 'no detections returned'
+        : boxes
+            .map(
+              (DetectionBox b) =>
+                  '${b.className} ${(b.confidence * 100).toStringAsFixed(0)}%',
+            )
+            .join(', ');
+
+    if (best == null) {
+      return ProofResult(
+        ok: false,
+        message: 'No toothbrush detected clearly enough ($seen). '
+            'Point the camera at the toothbrush and try again.',
+      );
+    }
+    return ProofResult(
+      ok: true,
+      message: 'Fresh camera photo accepted for $target; detected '
+          '${best.className} at '
+          '${(best.confidence * 100).toStringAsFixed(0)}% confidence',
+      signature: signature,
     );
   }
 

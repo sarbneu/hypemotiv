@@ -71,8 +71,6 @@ class SoundLabScreen extends StatefulWidget {
 class _SoundLabScreenState extends State<SoundLabScreen> {
   static const String _fallbackSoundUrl =
       'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
-  static const String _demoRipUrl =
-      'https://media.hypemotiv.app/rips/dawn-roast-060.mp3';
 
   final TextEditingController _ripController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
@@ -154,13 +152,38 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
       return;
     }
     setState(() => _ripBusy = true);
-    final String? result = await HypeApi().ripAudio(url);
+    final Map<String, dynamic>? data = await HypeApi().ripAudioDetailed(url);
     if (!mounted) return;
+    final String? extracted = data?['url'] as String?;
     setState(() {
-      _ripUrl = result ?? _demoRipUrl;
+      _ripUrl = extracted;
       _ripBusy = false;
     });
-    _toast(result == null ? 'Demo audio loaded' : 'Audio extracted');
+    if (extracted != null) {
+      _toast('Audio extracted');
+      return;
+    }
+    final Object? error = data?['error'] ?? data?['message'] ?? data?['details'];
+    _toast(error == null ? 'Could not extract audio' : 'Rip failed: $error');
+  }
+
+  Future<void> _uploadVideoAndExtract() async {
+    final List<PlatformFile> picked = await FilePicker.pickFiles(
+      type: FileType.video,
+    );
+    final String? path = picked.isEmpty ? null : picked.first.path;
+    if (path == null) {
+      _toast('No video selected');
+      return;
+    }
+    setState(() => _ripBusy = true);
+    final String? url = await HypeApi().uploadVideoAndExtract(File(path));
+    if (!mounted) return;
+    setState(() {
+      if (url != null) _ripUrl = url;
+      _ripBusy = false;
+    });
+    _toast(url == null ? 'Video audio extraction failed' : 'Audio extracted from video');
   }
 
   Future<void> _preview(String? url) async {
@@ -173,7 +196,11 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   }
 
   Future<void> _saveToAlarm() async {
-    final String url = _ripUrl ?? _fallbackSoundUrl;
+    final String? url = _ripUrl;
+    if (url == null) {
+      _toast('Extract audio first');
+      return;
+    }
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kSavedAlarmKey, url);
     _toast('Saved as your alarm sound');
@@ -285,6 +312,12 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                           label: _ripBusy ? 'Extracting...' : 'Extract audio',
                           icon: Icons.content_cut,
                           onPressed: _rip,
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          icon: const Icon(Icons.video_file),
+                          label: const Text('Upload video file and extract audio'),
+                          onPressed: _ripBusy ? null : _uploadVideoAndExtract,
                         ),
                         if (_ripUrl != null) ...<Widget>[
                           const SizedBox(height: 14),

@@ -74,3 +74,13 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Proof now uses deterministic checks only: camera freshness (max 2 minutes), brightness, image variance, an 8x8 perceptual hash, and a minimum 8-second gap between the two captures.
 - The second photo is rejected if it is visually too similar to the first (hash distance below 12).
 - Tests cover hash distance and capture distinctness (7/7 passing).
+
+
+## Audio, video, link, toothbrush and pose fixes (2026-11-24)
+
+- Web audio: all remote http(s) URLs proxied, MIME normalized by extension, non-audio bytes rejected; unsupported schemes rejected before fetch.
+- Video upload: POST /api/extract-audio accepts video/*, extracts via yt-dlp then ffmpeg fallback, stores playable mp3; Sound Lab has a video upload button.
+- Link extraction: /api/rip parses og:audio, twitter:player:stream, audio/source src and JSON-LD contentUrl; returns 422 instead of unrelated meme fallback.
+- Toothbrush: POST /api/detect/toothbrush wraps Roboflow inference returning boxes + confidence; unconfigured mode returns configured:false and deterministic proof still passes. Credentials are env-only.
+- Jumping jacks: camera + ML Kit PoseDetector screen with elbow-angle and leg-spread rep counting; manual accelerometer fallback retained.
+- Verification: flutter analyze clean, 11/11 tests, web/macos/phone APK builds OK, backend smoke 8/8, targeted endpoint probes 5/5.
