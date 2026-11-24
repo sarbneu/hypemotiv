@@ -25,6 +25,8 @@ class _SetupScreenState extends State<SetupScreen> {
     text: 'cybersamurail_09',
   );
   final TextEditingController _passcodeController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+  String _error = '';
   int _disciplineIndex = 0;
   SoundOption _selectedSound = defaultSoundOptions.first;
   List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
@@ -46,10 +48,31 @@ class _SetupScreenState extends State<SetupScreen> {
     Icons.volume_up,
   ];
 
+  Future<void> _finishSetup() async {
+    final String? userError = AuthService.validateUser(_handleController.text);
+    final String? passError = AuthService.validatePasscode(
+      _passcodeController.text,
+      confirmation: _confirmController.text,
+    );
+    final String? problem = userError ?? passError;
+    if (problem != null) {
+      setState(() => _error = problem);
+      _toast(problem);
+      return;
+    }
+    setState(() => _error = '');
+    await AuthService().register(
+      _handleController.text,
+      _passcodeController.text,
+    );
+    widget.onEnter?.call();
+  }
+
   @override
   void dispose() {
     _handleController.dispose();
     _passcodeController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -231,6 +254,34 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  const MicroText(
+                    'Repeat passcode',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _confirmController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF3D5AFE),
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  if (_error.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 10),
+                    Text(
+                      _error,
+                      style: const TextStyle(
+                        color: Color(0xFFF04438),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
 
                   const SectionLabel(
@@ -335,7 +386,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   NeonButton(
                     label: 'Finish setup',
                     icon: Icons.check,
-                    onPressed: widget.onEnter,
+                    onPressed: _finishSetup,
                   ),
                   const SizedBox(height: 16),
                   Row(

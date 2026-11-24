@@ -66,20 +66,13 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String? _validate() {
-    final String user = _handleController.text.trim().toLowerCase();
-    final String pass = _keyController.text.trim();
-    if (user.isEmpty) return 'Enter an email address or a handle';
-    if (user.contains(RegExp(r'\s'))) return 'No spaces are allowed';
-    if (user.length < 3) return 'Use at least 3 characters';
-    if (!RegExp(r'^[a-z0-9._@-]+$').hasMatch(user)) {
-      return 'Use letters, numbers, @, dot, dash or underscore only';
-    }
-    if (pass.isEmpty) return 'Enter a passcode (even one character is fine)';
-    if (pass.length > 64) return 'Passcode is too long';
-    if (_registerMode && pass != _confirmController.text.trim()) {
-      return 'Passcodes do not match';
-    }
-    return null;
+    final String? userError =
+        AuthService.validateUser(_handleController.text);
+    if (userError != null) return userError;
+    return AuthService.validatePasscode(
+      _keyController.text,
+      confirmation: _registerMode ? _confirmController.text : null,
+    );
   }
 
   Future<void> _submit() async {

@@ -15,6 +15,30 @@ class AuthService {
   static const String passKey = 'hypemotiv_account_pass';
   static const String sessionKey = 'hypemotiv_session';
 
+
+  /// Shared validation rules used by both sign-in and first-run setup.
+  /// Short passcodes are accepted deliberately; this is a local demo account.
+  static String? validateUser(String raw) {
+    final String user = raw.trim().toLowerCase();
+    if (user.isEmpty) return 'Enter an email address or a handle';
+    if (user.contains(RegExp(r'\s'))) return 'No spaces are allowed';
+    if (user.length < 3) return 'Use at least 3 characters';
+    if (!RegExp(r'^[a-z0-9._@-]+$').hasMatch(user)) {
+      return 'Use letters, numbers, @, dot, dash or underscore only';
+    }
+    return null;
+  }
+
+  static String? validatePasscode(String raw, {String? confirmation}) {
+    final String pass = raw.trim();
+    if (pass.isEmpty) return 'Enter a passcode (even one character is fine)';
+    if (pass.length > 64) return 'Passcode is too long';
+    if (confirmation != null && pass != confirmation.trim()) {
+      return 'Passcodes do not match';
+    }
+    return null;
+  }
+
   Future<bool> isRegistered() async {
     final prefs = await SharedPreferences.getInstance();
     final user = prefs.getString(userKey);
