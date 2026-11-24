@@ -33,8 +33,9 @@ const nodemailer = require('nodemailer');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
+const { execFile, spawnSync } = require('child_process');
 const { promisify } = require('util');
 require('dotenv').config();
 
@@ -942,19 +943,58 @@ app.get('/api/files/:id', async (req, res) => {
 const VIDEO_HOST_RE = /(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com|vimeo\.com|reddit\.com)/i;
 const MEDIA_EXT_RE = /\.(mp3|mp4|m4a|aac|wav|ogg|opus|webm|mov|flac|mkv|mka)(\?|#|$)/i;
 
-const DEFAULT_YTDLP_BIN = '/Users/sarbeshwor/Library/Python/3.13/bin/yt-dlp';
-const DEFAULT_FFMPEG_BIN = '/Users/sarbeshwor/.hermes/tools/ffmpeg-9.0.1-darwin-arm64/ffmpeg';
+/** Resolve an external binary without hard-coding any developer's paths. */
+function whichBinary(command) {
+  const finder = process.platform === 'win32' ? 'where' : 'which';
+  try {
+    const result = spawnSync(finder, [command], {
+      encoding: 'utf8',
+      timeout: 3000,
+    });
+    if (result.status === 0) {
+      const found = String(result.stdout || '').split(/\r?\n/).find(Boolean);
+      if (found && fs.existsSync(found)) return found;
+    }
+  } catch (_) {
+    // Fall through to the candidate paths below.
+  }
+  return null;
+}
+
+function pythonUserBinCandidates(command) {
+  const root = path.join(os.homedir(), 'Library', 'Python');
+  if (!fs.existsSync(root)) return [];
+  return fs
+    .readdirSync(root)
+    .map((version) => path.join(root, version, 'bin', command))
+    .filter((candidate) => fs.existsSync(candidate));
+}
+
+function resolveBinary(envName, command, candidates = []) {
+  const override = String(process.env[envName] || '').trim();
+  if (override) return override;
+  const onPath = whichBinary(command);
+  if (onPath) return onPath;
+  for (const candidate of [...candidates, ...pythonUserBinCandidates(command)]) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+  return command;
+}
 
 function ytdlpPath() {
-  const override = String(process.env.YTDLP_PATH || '').trim();
-  if (override) return override;
-  return fs.existsSync(DEFAULT_YTDLP_BIN) ? DEFAULT_YTDLP_BIN : 'yt-dlp';
+  return resolveBinary('YTDLP_PATH', 'yt-dlp', [
+    path.join(os.homedir(), '.local', 'bin', 'yt-dlp'),
+    '/usr/local/bin/yt-dlp',
+    '/opt/homebrew/bin/yt-dlp',
+  ]);
 }
 
 function ffmpegPath() {
-  const override = String(process.env.FFMPEG_PATH || '').trim();
-  if (override) return override;
-  return fs.existsSync(DEFAULT_FFMPEG_BIN) ? DEFAULT_FFMPEG_BIN : 'ffmpeg';
+  return resolveBinary('FFMPEG_PATH', 'ffmpeg', [
+    path.join(os.homedir(), '.local', 'bin', 'ffmpeg'),
+    '/usr/local/bin/ffmpeg',
+    '/opt/homebrew/bin/ffmpeg',
+  ]);
 }
 
 /** Remove every temp artifact created for a rip/extract job. */
@@ -1019,7 +1059,7 @@ async function ripWithYtdlp(url) {
     error.status = 503;
     throw error;
   }
-  const tmpBase = path.join(require('os').tmpdir(), `hypemotiv-rip-${crypto.randomUUID()}`);
+  const tmpBase = path.join(os.tmpdir(), `hypemotiv-rip-${crypto.randomUUID()}`);
   try {
     await execFileAsync(
       ytdlpPath(),
@@ -1028,9 +1068,9 @@ async function ripWithYtdlp(url) {
     );
     let produced = tmpBase;
     if (!fs.existsSync(produced)) {
-      const candidate = fs.readdirSync(require('os').tmpdir())
+      const candidate = fs.readdirSync(os.tmpdir())
         .find((n) => n.startsWith(path.basename(tmpBase) + '.'));
-      if (candidate) produced = path.join(require('os').tmpdir(), candidate);
+      if (candidate) produced = path.join(os.tmpdir(), candidate);
     }
     if (!fs.existsSync(produced)) throw new Error('yt-dlp produced no output file');
     const buffer = fs.readFileSync(produced);
@@ -1182,7 +1222,7 @@ app.post('/api/extract-audio', (req, res) => {
       return jsonError(res, 415, "multipart field 'file' must be a video/* file");
     }
 
-    const tmpBase = path.join(require('os').tmpdir(), `hypemotiv-extract-${crypto.randomUUID()}`);
+    const tmpBase = path.join(os.tmpdir(), `hypemotiv-extract-${crypto.randomUUID()}`);
     const srcExt = (path.extname(originalName).toLowerCase().match(/^\.[a-z0-9]+$/) || ['.mp4'])[0];
     const inputPath = `${tmpBase}${srcExt}`;
     const outputPath = `${tmpBase}.mp3`;
