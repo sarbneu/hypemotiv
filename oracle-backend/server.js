@@ -863,7 +863,6 @@ app.get('/api/sounds', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: file storage (Oracle BLOB primary, local disk fallback)
 // ---------------------------------------------------------------------------
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -938,7 +937,6 @@ app.get('/api/files/:id', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: video / direct-media ripper
 // ---------------------------------------------------------------------------
 const VIDEO_HOST_RE = /(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com|vimeo\.com|reddit\.com)/i;
 const MEDIA_EXT_RE = /\.(mp3|mp4|m4a|aac|wav|ogg|opus|webm|mov|flac|mkv|mka)(\?|#|$)/i;
@@ -1203,7 +1201,6 @@ app.post('/api/rip', async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: video -> MP3 extraction (yt-dlp first, ffmpeg only as fallback)
 // ---------------------------------------------------------------------------
 const VIDEO_EXT_FOR_EXTRACT = /\.(mp4|mov|webm|mkv|avi|m4v|flv|wmv|mpeg|mpg|3gp)$/i;
 
@@ -1232,7 +1229,6 @@ app.post('/api/extract-audio', (req, res) => {
     try {
       fs.writeFileSync(inputPath, req.file.buffer);
 
-      // 1) yt-dlp extracts the audio track directly to MP3 (never a playlist).
       try {
         await execFileAsync(ytdlpPath(), [
           '--extract-audio', '--audio-format', 'mp3', '--no-playlist',
@@ -1245,7 +1241,6 @@ app.post('/api/extract-audio', (req, res) => {
         console.warn('[extract-audio] yt-dlp failed, trying ffmpeg:', err.message);
       }
 
-      // 2) ffmpeg fallback — only when yt-dlp failed or produced nothing.
       if (!produced) {
         try {
           await execFileAsync(ffmpegPath(), [
@@ -1291,13 +1286,11 @@ app.post('/api/extract-audio', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: Roboflow toothbrush detection (optional; app falls back when disabled)
 // ---------------------------------------------------------------------------
 app.post('/api/detect/toothbrush', (req, res) => {
   const apiKey = String(process.env.ROBOFLOW_API_KEY || '').trim();
   const modelId = String(process.env.ROBOFLOW_MODEL_ID || '').trim();
   if (!apiKey || !modelId) {
-    // HTTP 200 + configured:false lets the app use its local fallback.
     return res.json({ success: false, configured: false, detections: [] });
   }
   upload.single('file')(req, res, async (multerErr) => {
@@ -1353,7 +1346,6 @@ app.post('/api/detect/toothbrush', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// NEW: email delivery (nodemailer SMTP, outbox.log demo fallback)
 // ---------------------------------------------------------------------------
 function appendOutbox({ to, subject, body }) {
   const entry = {

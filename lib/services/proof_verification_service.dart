@@ -125,8 +125,6 @@ class ProofVerificationService {
       variance: variance,
     );
 
-    // Deterministic checks always run first. The toothbrush target adds an
-    // object check on top of them (never instead of them).
     if (target.trim().toLowerCase().contains('toothbrush')) {
       return _verifyToothbrush(
         photo: photo,

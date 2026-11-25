@@ -17,7 +17,6 @@ class AuthService {
 
 
   /// Shared validation rules used by both sign-in and first-run setup.
-  /// Short passcodes are accepted deliberately; this is a local demo account.
   static String? validateUser(String raw) {
     final String user = raw.trim().toLowerCase();
     if (user.isEmpty) return 'Enter an email address or a handle';

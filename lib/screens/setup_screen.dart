@@ -31,7 +31,6 @@ class _SetupScreenState extends State<SetupScreen> {
   SoundOption _selectedSound = defaultSoundOptions.first;
   List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
 
-  // Clean, non-profane morning rage presets backed by bundled audio.
   static const List<String> _disciplines = <String>[
     'Military Wake Up',
     'Nuclear Siren',

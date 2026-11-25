@@ -11,8 +11,6 @@
 /// `OracleConfig.apiBaseUrl` already ends in `/api`, so each path below is
 /// written relative to it (`$base/extract-audio` == `/api/extract-audio`).
 ///
-/// Every method is network-fail-safe: the UI keeps working offline and shows
-/// local/demo data instead of crashing when the Node backend is not running.
 library;
 
 import 'dart:convert';
@@ -162,7 +160,6 @@ class HypeApi {
   }
 
   /// Return the small curated sound pack bundled with the app.
-  /// No website scraping: these are local assets committed to the project.
   Future<List<Sound>> fetchSounds({String query = '', int limit = 50}) async {
     final String q = query.trim().toLowerCase();
     return defaultSoundOptions
@@ -263,8 +260,6 @@ class HypeApi {
   }
 
   /// Full backend response for a rip request, including any error details.
-  /// Never throws: transport problems come back as `{'error': '...'}` so the
-  /// UI can show them. Success payloads are returned unchanged.
   Future<Map<String, dynamic>?> ripAudioDetailed(
     String url, {
     String userId = 'demo',

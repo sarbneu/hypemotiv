@@ -129,7 +129,6 @@ class _ArenaScreenState extends State<ArenaScreen> {
     try {
       await AudioService().play(_drillUrl);
     } catch (_) {
-      // Audio failures never reach the UI.
     }
     if (!mounted) return;
     setState(() => _audioLoading = false);

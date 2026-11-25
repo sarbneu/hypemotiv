@@ -129,7 +129,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     try {
       await AudioService().play(url ?? _fallbackSoundUrl);
     } catch (_) {
-      // Audio failures never reach the UI.
     }
     _toast('Playing preview');
   }
@@ -153,7 +152,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     try {
       await _tts.speakWithCharacter(text.trim(), _voiceCharacter);
     } catch (_) {
-      // TTS failures never reach the UI.
     }
   }
 

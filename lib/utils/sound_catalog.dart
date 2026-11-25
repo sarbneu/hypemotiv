@@ -1,4 +1,3 @@
-/// Curated, locally bundled alarm sounds. No website scraping at runtime.
 library;
 
 class SoundOption {
@@ -37,6 +36,5 @@ const List<SoundOption> defaultSoundOptions = <SoundOption>[
   ),
 ];
 
-/// Clean, non-profane "morning rage" presets shown in first-run setup.
 final List<SoundOption> morningRageOptions =
     defaultSoundOptions.take(5).toList();

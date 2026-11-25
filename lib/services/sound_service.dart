@@ -1,5 +1,4 @@
 /// Sound service backed by the small pack bundled with the app.
-/// No website scraping: every sound is a committed local asset.
 library;
 
 import '../utils/sound_catalog.dart';

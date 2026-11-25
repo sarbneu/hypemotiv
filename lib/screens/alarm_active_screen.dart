@@ -200,7 +200,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       await _snooze(<String, Object>{'label': label, 'reps': counted}, duration: const Duration(minutes: 5));
       return;
     }
-    // Squats / push-ups keep the accelerometer detector + manual fallback.
     final bool? accepted = await _showExerciseDialog(label: label, reps: target);
     if (accepted != true || !mounted) return;
     await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
