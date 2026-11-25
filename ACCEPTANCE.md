@@ -84,3 +84,11 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Toothbrush: POST /api/detect/toothbrush wraps Roboflow inference returning boxes + confidence; unconfigured mode returns configured:false and deterministic proof still passes. Credentials are env-only.
 - Jumping jacks: camera + ML Kit PoseDetector screen with elbow-angle and leg-spread rep counting; manual accelerometer fallback retained.
 - Verification: flutter analyze clean, 11/11 tests, web/macos/phone APK builds OK, backend smoke 8/8, targeted endpoint probes 5/5.
+
+
+## Release APK startup fix (2026-11-25)
+
+- Symptom: release APK crashed on startup with `Failed to create an instance of androidx.work.impl.WorkDatabase`.
+- Cause: ML Kit acceleration pulls in WorkManager 2.7.0; R8 stripped classes needed by WorkManager/Room in the release build.
+- Fix: added `android/app/proguard-rules.pro` with keep rules for `androidx.work`, `androidx.room`, ML Kit classes; enabled minification with those rules in `android/app/build.gradle.kts`.
+- Verified: rebuilt release APK installs, launches, and renders the Create account screen with no fatal exception.
