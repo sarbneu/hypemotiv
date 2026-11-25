@@ -92,3 +92,10 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Cause: ML Kit acceleration pulls in WorkManager 2.7.0; R8 stripped classes needed by WorkManager/Room in the release build.
 - Fix: added `android/app/proguard-rules.pro` with keep rules for `androidx.work`, `androidx.room`, ML Kit classes; enabled minification with those rules in `android/app/build.gradle.kts`.
 - Verified: rebuilt release APK installs, launches, and renders the Create account screen with no fatal exception.
+
+
+## Audio button latency (2026-11-25)
+
+- Removed per-press `stop()` and `setReleaseMode()` calls; release mode is only changed when loop state actually changes.
+- Web audio bytes are cached in memory (12 entries) so repeat previews do not re-fetch the same URL.
+- Bundled asset sounds still play directly with no network.

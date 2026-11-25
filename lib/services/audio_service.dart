@@ -16,12 +16,8 @@ class AudioService {
 
   Future<void> playLocalTest({bool loop = false}) async {
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.setReleaseMode(
-        loop ? ReleaseMode.loop : ReleaseMode.release,
-      );
+      await _applyLoop(loop);
       await _audioPlayer.setSourceAsset(localTestSound);
-      await _audioPlayer.setVolume(1.0);
       await _audioPlayer.resume();
     } catch (e) {
       debugPrint('AudioService: local test sound failed: $e');
@@ -34,6 +30,8 @@ class AudioService {
   static const Duration _fetchTimeout = Duration(seconds: 15);
 
   late AudioPlayer _audioPlayer;
+  bool _loop = false;
+  final Map<String, Uint8List> _bytesCache = <String, Uint8List>{};
 
   Future<void> init() async {
     _audioPlayer = AudioPlayer();
@@ -54,6 +52,7 @@ class AudioService {
         ),
       );
       await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.setReleaseMode(ReleaseMode.release);
     } catch (_) {
       // Some platforms do not support configuring the audio context.
     }
@@ -73,18 +72,14 @@ class AudioService {
         );
       }
       final String playable = HypeApi.playableUrl(source);
-      await _audioPlayer.stop();
-      await _audioPlayer.setReleaseMode(
-        loop ? ReleaseMode.loop : ReleaseMode.release,
-      );
+      await _applyLoop(loop);
       // On web, audioplayers creates an HTMLAudioElement with
       // crossOrigin=anonymous. Feeding bytes avoids that CORS path entirely.
       if (source.startsWith('assets/')) {
         await _audioPlayer.setSourceAsset(source);
       } else if (kIsWeb) {
-        final http.Response response =
-            await http.get(Uri.parse(playable)).timeout(_fetchTimeout);
-        await _setSourceFromResponse(response, playable);
+        final Uint8List bytes = await _bytesFor(playable);
+        await _audioPlayer.setSourceBytes(bytes);
       } else if (source.startsWith('/')) {
         // Custom sounds saved by CustomSoundService on the device.
         await _audioPlayer.setSourceDeviceFile(source);
@@ -98,41 +93,43 @@ class AudioService {
     }
   }
 
-  /// Validate the web response before handing it to audioplayers: an HTML
-  Future<void> _setSourceFromResponse(
-    http.Response response,
-    String url,
-  ) async {
+  Future<void> _applyLoop(bool loop) async {
+    if (_loop == loop) return;
+    await _audioPlayer.setReleaseMode(
+      loop ? ReleaseMode.loop : ReleaseMode.release,
+    );
+    _loop = loop;
+  }
+
+  Future<Uint8List> _bytesFor(String url) async {
+    final Uint8List? cached = _bytesCache[url];
+    if (cached != null) return cached;
+    final http.Response response =
+        await http.get(Uri.parse(url)).timeout(_fetchTimeout);
     if (response.statusCode != 200) {
       throw StateError('Audio HTTP ${response.statusCode} from $url');
     }
-    final int length = response.bodyBytes.length;
-    if (length == 0) {
-      throw StateError('Empty audio response from $url');
-    }
-    final String? format = HypeApi.detectAudioFormat(response.bodyBytes);
+    final Uint8List bytes = response.bodyBytes;
+    if (bytes.isEmpty) throw StateError('Empty audio response from $url');
+    final String? format = HypeApi.detectAudioFormat(bytes);
     if (format == null) {
-      final String kind = HypeApi.looksLikeHtml(response.bodyBytes)
+      final String kind = HypeApi.looksLikeHtml(bytes)
           ? 'HTML/error page'
           : 'unrecognised bytes';
-      throw StateError(
-        'Response from $url is not audio ($kind, $length bytes)',
-      );
+      throw StateError('Response from $url is not audio ($kind)');
     }
-    debugPrint('AudioService: fetched $format audio ($length bytes) from $url');
-    await _audioPlayer.setSourceBytes(response.bodyBytes);
+    if (_bytesCache.length >= 12) _bytesCache.remove(_bytesCache.keys.first);
+    _bytesCache[url] = bytes;
+    return bytes;
   }
 
   Future<void> _playFallback() async {
     try {
-      await _audioPlayer.stop();
       final String url = HypeApi.playableUrl(fallbackSoundUrl);
       if (url.startsWith('assets/')) {
         await _audioPlayer.setSourceAsset(url);
       } else if (kIsWeb) {
-        final http.Response response =
-            await http.get(Uri.parse(url)).timeout(_fetchTimeout);
-        await _setSourceFromResponse(response, url);
+        await _audioPlayer.setSourceBytes(await _bytesFor(url));
       } else {
         await _audioPlayer.setSourceUrl(url);
       }
