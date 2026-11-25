@@ -11,6 +11,8 @@ import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
+import 'package:hypemotiv/screens/math_task_picker_screen.dart';
 import 'package:hypemotiv/screens/pose_exercise_screen.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
@@ -34,8 +36,8 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   DateTime _now = DateTime(2026, 1, 1, 7, 23, 27);
   bool _disarmed = false;
   bool _uploading = false;
-  int _mathA = 24;
-  int _mathB = 6;
+  MathProblem _mathProblem =
+      const MathProblem(question: '2 + 2 = ?', answer: 4);
   final TextEditingController _mathController = TextEditingController();
   bool _mathSolved = false;
   int _proofStep = 0;
@@ -53,9 +55,9 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     TaskSelectionService().selected().then((List<String> ids) {
       if (mounted) setState(() => _requiredTasks = ids);
     });
-    final math.Random random = math.Random();
-    _mathA = 11 + random.nextInt(80);
-    _mathB = 3 + random.nextInt(8);
+    MathTaskService().nextProblem().then((MathProblem problem) {
+      if (mounted) setState(() => _mathProblem = problem);
+    });
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (!mounted) {
         timer.cancel();
@@ -94,7 +96,7 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
 
   void _checkMath() {
     final int? answer = int.tryParse(_mathController.text.trim());
-    if (answer == _mathA * _mathB) {
+    if (answer == _mathProblem.answer) {
       setState(() => _mathSolved = true);
       _toast('Maths task complete');
     } else {
@@ -345,9 +347,28 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                           'Wake-up maths',
                           trailing: _mathSolved ? 'Done' : 'Required',
                         ),
+                        TextButton(
+                          onPressed: () async {
+                            await Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (BuildContext context) =>
+                                    const MathTaskPickerScreen(),
+                              ),
+                            );
+                            final MathProblem problem =
+                                await MathTaskService().nextProblem();
+                            if (!mounted) return;
+                            setState(() {
+                              _mathProblem = problem;
+                              _mathSolved = false;
+                              _mathController.clear();
+                            });
+                          },
+                          child: const Text('Easy / custom questions'),
+                        ),
                         const SizedBox(height: 8),
                         Text(
-                          '$_mathA × $_mathB = ?',
+                          _mathProblem.question,
                           style: const TextStyle(
                             color: Color(0xFF1F2933),
                             fontSize: 22,

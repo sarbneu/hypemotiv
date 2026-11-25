@@ -2,6 +2,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:hypemotiv/screens/math_task_picker_screen.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
 
@@ -67,6 +68,19 @@ class _TaskPickerScreenState extends State<TaskPickerScreen> {
                     title: Text(task.label),
                     subtitle: Text(task.hint),
                   ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.calculate),
+                  label: const Text('Maths options and custom questions'),
+                  onPressed: () async {
+                    await Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (BuildContext context) =>
+                            const MathTaskPickerScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
               ],

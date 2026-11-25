@@ -7,6 +7,7 @@ import 'package:hypemotiv/main.dart';
 import 'package:hypemotiv/screens/login_screen.dart';
 import 'package:hypemotiv/screens/setup_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
@@ -184,6 +185,25 @@ void main() {
 
     expect(entered, isFalse);
     expect(find.text('Enter a passcode (even one character is fine)'), findsWidgets);
+  });
+
+
+  test('math task supports easy difficulty and custom questions', () async {
+    SharedPreferences.setMockInitialValues({});
+    final MathTaskService service = MathTaskService();
+
+    await service.setDifficulty('Easy');
+    final MathProblem easy = await service.nextProblem();
+    expect(easy.question.contains('+') || easy.question.contains('−'), isTrue);
+
+    await service.addCustom('What is 7 + 5?', 12);
+    expect((await service.customQuestions()).length, 1);
+    final MathProblem custom = await service.nextProblem();
+    expect(custom.question, 'What is 7 + 5?');
+    expect(custom.answer, 12);
+
+    await service.removeCustom(0);
+    expect(await service.customQuestions(), isEmpty);
   });
 
 }
