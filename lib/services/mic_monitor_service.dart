@@ -1,8 +1,4 @@
 /// Microphone-based sleep environment monitor.
-///
-/// Samples ambient loudness for a short window and returns the average level
-/// plus a disturbance count. These numbers are saved with the sleep session,
-/// so the sleep screen shows measured data instead of a fabricated score.
 library;
 
 import 'dart:io';

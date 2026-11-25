@@ -1,9 +1,4 @@
 /// Camera-proof checks for the wake-up alarm.
-///
-/// Every proof must be a fresh, non-blank camera capture, and the second photo
-/// must be a genuinely different capture from the first. For the toothbrush
-/// target an optional backend detector adds an object check; when the detector
-/// is not configured the deterministic checks alone are sufficient.
 library;
 
 import 'dart:async';

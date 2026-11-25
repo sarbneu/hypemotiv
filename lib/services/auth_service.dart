@@ -1,7 +1,4 @@
 /// Simple local account for the student prototype.
-///
-/// Credentials are stored on the device only. This is a demo account system,
-/// not production authentication — no password is ever sent to a server.
 library;
 
 import 'package:shared_preferences/shared_preferences.dart';

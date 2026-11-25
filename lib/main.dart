@@ -1,10 +1,4 @@
 /// HypeMotiv - meme audio alarm, daily habit checklist and streak tracker.
-///
-/// Architecture:
-///  - Flutter app + Hive for offline-first local storage
-///  - Node.js/Express REST backend (`oracle-backend/`) hosted on an Oracle Cloud VPS
-///  - Oracle Database for relational data and BLOB file storage
-///  - nodemailer for accountability email, myinstants scraping and video audio ripping
 library;
 
 import 'package:flutter/material.dart';

@@ -1,6 +1,4 @@
 /// Real local notifications for alarms and wind-down reminders.
-///
-/// Initialised once in main(); no fake/toast-only alarms.
 library;
 
 import 'dart:io';

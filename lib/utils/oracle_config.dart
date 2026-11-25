@@ -1,8 +1,4 @@
 /// Oracle configuration constants.
-///
-/// These are placeholders - replace with your actual Oracle connection details.
-/// The HypeMotiv app connects to Oracle via a REST API (Node.js + oracledb)
-/// since Flutter has no native Oracle driver.
 library;
 class OracleConfig {
   // Database connection details
@@ -14,8 +10,6 @@ class OracleConfig {
   static const String oracleConnectString = 'localhost:1521/ORCL';
 
   // REST API endpoints for the mobile app to sync with Oracle.
-  // Override at build time for a real device / emulator:
-  //   flutter run --dart-define=HYPE_API_URL=http://10.0.2.2:3000/api
   static const String apiBaseUrl = String.fromEnvironment(
     'HYPE_API_URL',
     defaultValue: 'http://localhost:3000/api',

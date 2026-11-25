@@ -99,8 +99,6 @@ class AudioService {
   }
 
   /// Validate the web response before handing it to audioplayers: an HTML
-  /// error page or an empty/HTML body would otherwise be "played" silently.
-  /// MIME type is decided by the backend proxy; the client checks magic bytes.
   Future<void> _setSourceFromResponse(
     http.Response response,
     String url,

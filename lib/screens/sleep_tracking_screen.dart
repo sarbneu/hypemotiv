@@ -1,7 +1,4 @@
 /// Real sleep tracking: start/stop a session, log a past night, review history.
-///
-/// Sessions are persisted in the existing Hive `sleep_sessions` box through
-/// SleepTrackingService, so the sleep score and averages come from real data.
 library;
 
 import 'package:flutter/material.dart';

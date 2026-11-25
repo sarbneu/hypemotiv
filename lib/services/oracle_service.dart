@@ -1,16 +1,4 @@
 /// Oracle Database connectivity service.
-///
-/// NOTE: Flutter/Dart has no official Oracle driver. Oracle is accessed
-/// server-side (Node.js/Express with oracledb) and the mobile app syncs
-/// with the Oracle backend via HTTPS/REST. This service demonstrates the
-/// sync protocol the mobile app uses to talk to Oracle.
-///
-/// Server side (Node.js + oracledb):
-///   const oracledb = require('oracledb');
-///   const conn = await oracledb.getConnection({ user, password, connectString });
-///   const result = await conn.execute('SELECT * FROM hypemotiv.alarm_settings WHERE user_id = :uid', [uid]);
-///
-/// See: README.md for full setup instructions.
 library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -32,8 +20,6 @@ class OracleService {
   static const int port = 3000;
 
   /// Full base URL, e.g. http://localhost:3000 or https://vps.example.com
-  /// When the app is built with --dart-define=HYPE_API_URL=... the same
-  /// endpoint is used for every service (local dev, emulator and Oracle VPS).
   static String get baseUrl {
     const configured = String.fromEnvironment('HYPE_API_URL');
     if (configured.isNotEmpty) {

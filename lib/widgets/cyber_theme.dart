@@ -4,9 +4,6 @@ library;
 import 'package:flutter/material.dart';
 
 /// Calm, light design tokens shared by every HypeMotiv screen.
-///
-/// The getter names are kept for API compatibility with existing screens;
-/// only their values (and the visual treatment of the widgets) changed.
 class CyberTheme {
   CyberTheme._();
 

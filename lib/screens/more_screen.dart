@@ -1,8 +1,4 @@
 /// More hub - reachable entry point for the secondary app features.
-///
-/// Everything on this screen performs a real action: navigating to an existing
-/// screen, sending an accountability email through the Node backend, or
-/// playing a test alarm sound. No stub/toast-only buttons.
 library;
 
 import 'package:flutter/material.dart';

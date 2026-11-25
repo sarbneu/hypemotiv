@@ -1,9 +1,4 @@
 /// Camera + ML Kit pose based jumping jack counter.
-///
-/// Frames come from the `camera` plugin, are converted to an
-/// [InputImage] for Google ML Kit Pose Detection, and are sampled at roughly
-/// 10 fps. A rep is counted on an arms-down -> arms-up transition while the
-/// ankles are spread wider than the hips.
 library;
 
 import 'dart:async';
@@ -17,13 +12,9 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 /// Result sent back to the caller when the camera cannot be used
-/// (missing permission or no camera). The caller falls back to the existing
-/// accelerometer/manual `_ExerciseDialog`.
 const int kPoseCameraUnavailable = -1;
 
 /// Angle of the upper arm measured from straight down, using the shoulder and
-/// elbow landmarks. In image coordinates (y grows downwards) a hanging arm is
-/// close to 0 degrees and an arm raised overhead is close to 180 degrees.
 double elbowArmAngle(PoseLandmark shoulder, PoseLandmark elbow) {
   final double dx = elbow.x - shoulder.x;
   final double dy = elbow.y - shoulder.y;
@@ -40,9 +31,6 @@ double landmarkDistance(PoseLandmark a, PoseLandmark b) {
 }
 
 /// Small pure state machine used by [PoseExerciseScreen].
-///
-/// A rep is only counted after an arms-down pose has been seen, so starting
-/// the exercise with the arms already up does not award a free rep.
 class JumpingJackCounter {
   JumpingJackCounter({
     this.downAngle = 50,

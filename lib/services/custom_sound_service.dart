@@ -1,8 +1,4 @@
 /// Lets the user pick an audio file from the phone and keep it in the app.
-///
-/// The file is copied into the app's documents folder, so it survives
-/// restarts and works without the backend. Uploading to the backend is
-/// optional and only adds a remote copy.
 library;
 
 import 'dart:convert';

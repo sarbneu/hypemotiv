@@ -1,16 +1,4 @@
 /// HypeMotiv extended API client.
-///
-/// Capabilities the base Oracle REST bridge does not have:
-///   1. Curated local sound pack        (bundled assets, no scraping)
-///   2. Oracle BLOB file storage       (POST /api/files/upload, GET /api/files/:id)
-///   3. Video -> audio extraction      (POST /api/extract-audio)
-///   4. Link -> audio ripper           (POST /api/rip)
-///   5. Toothbrush photo detection     (POST /api/detect/toothbrush)
-///   6. Node/email delivery            (POST /api/email/send)
-///
-/// `OracleConfig.apiBaseUrl` already ends in `/api`, so each path below is
-/// written relative to it (`$base/extract-audio` == `/api/extract-audio`).
-///
 library;
 
 import 'dart:convert';
@@ -88,10 +76,6 @@ class HypeApi {
   static String get base => OracleConfig.apiBaseUrl;
 
   /// On Flutter Web, audioplayers creates an HTMLAudioElement with
-  /// crossOrigin=anonymous, and almost no media host sends CORS headers.
-  /// Route every remote http(s) URL through the backend's same-origin proxy.
-  /// Other schemes are returned untouched so the caller can reject them with
-  /// a clear message. Native keeps the direct URL (works with no backend).
   static String playableUrl(String url) {
     if (!kIsWeb) return url;
     final Uri? uri = Uri.tryParse(url);
@@ -243,9 +227,6 @@ class HypeApi {
   }
 
   /// Paste a TikTok / Reels / YouTube / direct-media URL and get back an
-  /// Oracle-hosted audio URL. Returns null on failure, but always prints the
-  /// backend's error message instead of swallowing it. Use [ripAudioDetailed]
-  /// when the UI needs to explain *why* a rip failed.
   Future<String?> ripAudio(String url, {String userId = 'demo'}) async {
     final Map<String, dynamic>? data =
         await ripAudioDetailed(url, userId: userId);
@@ -314,12 +295,6 @@ class HypeApi {
   }
 
   /// Run the optional toothbrush detector on a proof photo.
-  ///
-  /// Returns a map with `success`, `configured`, `detections` (parsed
-  /// [DetectionBox] objects), `raw` backend JSON and possibly `error`.
-  /// `null` means the backend could not be reached at all. `configured:false`
-  /// means the server is reachable but has no detector model installed, so
-  /// callers can keep their deterministic checks in that case.
   Future<Map<String, dynamic>?> detectToothbrush(File photo) async {
     try {
       final http.MultipartRequest request = http.MultipartRequest(

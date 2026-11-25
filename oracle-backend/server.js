@@ -78,11 +78,7 @@ const SAMPLE_QUOTES = [
   { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
 ];
 
-// ---------------------------------------------------------------------------
 // Bundled sound fallback — real myinstants MP3 URLs, all verified live
-// (curl -I => 200 audio/mpeg) on 2026-11-18. Used when the live scrape is
-// blocked, rate-limited or returns no parseable results.
-// ---------------------------------------------------------------------------
 const BUNDLED_SOUNDS = [
   { name: 'Bruh Sound Effect #2', file: 'bruh-sound-effect-2.mp3' },
   { name: 'BRUH', file: 'movie_1.mp3' },
@@ -104,9 +100,7 @@ const BUNDLED_SOUNDS = [
   imageUrl: `${MYINSTANTS}/favicon.ico`,
 }));
 
-// ---------------------------------------------------------------------------
 // Shared helpers
-// ---------------------------------------------------------------------------
 function dbConfig() {
   return {
     user: process.env.ORACLE_USER,
@@ -115,11 +109,7 @@ function dbConfig() {
   };
 }
 
-// ---------------------------------------------------------------------------
 // Oracle connection pool. Created once at startup with retry; every DB helper
-// and sync endpoint uses it. If pool creation fails (e.g. no DB at demo time)
-// we transparently fall back to a direct getConnection() per request.
-// ---------------------------------------------------------------------------
 let pool = null;
 let poolInitPromise = null;
 const POOL_MIN = Math.max(0, parseInt(process.env.ORACLE_POOL_MIN || '0', 10) || 0);
@@ -379,9 +369,7 @@ function detectMime(fileName, contentType) {
   return fromExt || ct || 'application/octet-stream';
 }
 
-// ---------------------------------------------------------------------------
 // Original sync endpoints (preserved)
-// ---------------------------------------------------------------------------
 
 // Health check - should be called as /api/health
 app.get('/api/health', async (req, res) => {
@@ -619,11 +607,7 @@ app.post('/api/quotes', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // CORS audio proxy. audioplayers on Flutter Web sets crossOrigin=anonymous;
-// myinstants.com does not send Access-Control-Allow-Origin, so remote MP3s
-// would be blocked in the browser. Only known audio hosts are allowed.
-// ---------------------------------------------------------------------------
 const AUDIO_PROXY_HOSTS = new Set([
   'www.myinstants.com',
   'myinstants.com',
@@ -741,15 +725,7 @@ app.get('/api/sounds/proxy', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // myinstants.com live sound search
-//
-// Current markup (verified 2026-11-18) is `<div class="instant">` containing
-//   <button class="small-button" onclick="play('/media/sounds/x.mp3', ...)">
-//   <a class="instant-link">Sound name</a>
-// Individual endpoints intermittently return 404, so we try several candidate
-// URLs in order. The bundled fallback is used only if every endpoint fails.
-// ---------------------------------------------------------------------------
 function parseInstantsHtml(html, category) {
   const $ = cheerio.load(html);
   const seen = new Set();
@@ -862,8 +838,6 @@ app.get('/api/sounds', async (req, res) => {
   res.json({ success: true, sounds: sounds.slice(0, limit), source });
 });
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 },
@@ -936,8 +910,6 @@ app.get('/api/files/:id', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 const VIDEO_HOST_RE = /(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com|vimeo\.com|reddit\.com)/i;
 const MEDIA_EXT_RE = /\.(mp3|mp4|m4a|aac|wav|ogg|opus|webm|mov|flac|mkv|mka)(\?|#|$)/i;
 
@@ -1200,8 +1172,6 @@ app.post('/api/rip', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 const VIDEO_EXT_FOR_EXTRACT = /\.(mp4|mov|webm|mkv|avi|m4v|flv|wmv|mpeg|mpg|3gp)$/i;
 
 app.post('/api/extract-audio', (req, res) => {
@@ -1285,8 +1255,6 @@ app.post('/api/extract-audio', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 app.post('/api/detect/toothbrush', (req, res) => {
   const apiKey = String(process.env.ROBOFLOW_API_KEY || '').trim();
   const modelId = String(process.env.ROBOFLOW_MODEL_ID || '').trim();
@@ -1345,8 +1313,6 @@ app.post('/api/detect/toothbrush', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 function appendOutbox({ to, subject, body }) {
   const entry = {
     timestamp: new Date().toISOString(),

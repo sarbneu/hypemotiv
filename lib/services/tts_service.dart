@@ -28,8 +28,6 @@ class TTSService {
   };
 
   /// Initialize the TTS engine without ever blocking app startup.
-  /// Some Android images have no TTS engine installed; in that case the
-  /// calls can hang, so each one is bounded and failures are ignored.
   Future<void> init() async {
     await _safe(() => _flutterTts.setLanguage('en-US'));
     await _safe(() => _flutterTts.setSpeechRate(0.5)); // Slower for quotes
