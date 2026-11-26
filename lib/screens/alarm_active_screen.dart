@@ -1,4 +1,3 @@
-/// Screen 05 — live alarm with photo check-in.
 library;
 
 import 'dart:async';
@@ -11,6 +10,8 @@ import 'package:hypemotiv/services/hype_api.dart';
 import 'package:hypemotiv/services/notification_service.dart';
 import 'package:hypemotiv/services/proof_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
+import 'package:hypemotiv/screens/math_task_picker_screen.dart';
 import 'package:hypemotiv/screens/pose_exercise_screen.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
@@ -34,8 +35,8 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   DateTime _now = DateTime(2026, 1, 1, 7, 23, 27);
   bool _disarmed = false;
   bool _uploading = false;
-  int _mathA = 24;
-  int _mathB = 6;
+  MathProblem _mathProblem =
+      const MathProblem(question: '2 + 2 = ?', answer: 4);
   final TextEditingController _mathController = TextEditingController();
   bool _mathSolved = false;
   int _proofStep = 0;
@@ -45,17 +46,15 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
   bool get _requireMaths => _requiredTasks.contains('maths');
   bool get _requirePhoto => _requiredTasks.contains('photo');
 
-
-
   @override
   void initState() {
     super.initState();
     TaskSelectionService().selected().then((List<String> ids) {
       if (mounted) setState(() => _requiredTasks = ids);
     });
-    final math.Random random = math.Random();
-    _mathA = 11 + random.nextInt(80);
-    _mathB = 3 + random.nextInt(8);
+    MathTaskService().nextProblem().then((MathProblem problem) {
+      if (mounted) setState(() => _mathProblem = problem);
+    });
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
       if (!mounted) {
         timer.cancel();
@@ -92,14 +91,24 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     );
   }
 
-  void _checkMath() {
+  Future<void> _refreshMath() async {
+    final MathProblem problem = await MathTaskService().nextProblem();
+    if (!mounted) return;
+    setState(() {
+      _mathProblem = problem;
+      _mathController.clear();
+    });
+  }
+
+  Future<void> _checkMath() async {
     final int? answer = int.tryParse(_mathController.text.trim());
-    if (answer == _mathA * _mathB) {
+    if (answer == _mathProblem.answer) {
       setState(() => _mathSolved = true);
       _toast('Maths task complete');
-    } else {
-      _toast('Wrong answer. Try again.');
+      return;
     }
+    _toast('Wrong answer. New question loaded.');
+    await _refreshMath();
   }
 
   Future<void> _disarmNow(String message) async {
@@ -166,7 +175,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     await _disarmNow('Both photos accepted · Alarm stopped');
   }
 
-  /// Snooze only unlocks after real phone movement (20 repetitions).
   Future<void> _snoozeWithExercise() async {
     if (_requireMaths && !_mathSolved) {
       _toast('Solve the maths task first');
@@ -190,7 +198,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       );
       if (!mounted) return;
       if (counted == kPoseCameraUnavailable) {
-        // Camera unavailable: fall back to the existing manual dialog.
         final bool? manual = await _showExerciseDialog(label: label, reps: target);
         if (manual != true || !mounted) return;
         await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
@@ -200,7 +207,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       await _snooze(<String, Object>{'label': label, 'reps': counted}, duration: const Duration(minutes: 5));
       return;
     }
-    // Squats / push-ups keep the accelerometer detector + manual fallback.
     final bool? accepted = await _showExerciseDialog(label: label, reps: target);
     if (accepted != true || !mounted) return;
     await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
@@ -346,9 +352,29 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                           'Wake-up maths',
                           trailing: _mathSolved ? 'Done' : 'Required',
                         ),
+                        Row(
+                          children: <Widget>[
+                            TextButton(
+                              onPressed: () async {
+                                await Navigator.of(context).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (BuildContext context) =>
+                                        const MathTaskPickerScreen(),
+                                  ),
+                                );
+                                await _refreshMath();
+                              },
+                              child: const Text('Maths level'),
+                            ),
+                            TextButton(
+                              onPressed: _refreshMath,
+                              child: const Text('New question'),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 8),
                         Text(
-                          '$_mathA × $_mathB = ?',
+                          _mathProblem.question,
                           style: const TextStyle(
                             color: Color(0xFF1F2933),
                             fontSize: 22,
@@ -554,7 +580,6 @@ class _PriorityItem extends StatelessWidget {
     );
   }
 }
-
 
 class _ExerciseDialog extends StatefulWidget {
   const _ExerciseDialog({required this.label, required this.reps});

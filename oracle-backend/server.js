@@ -33,8 +33,9 @@ const nodemailer = require('nodemailer');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
+const { execFile, spawnSync } = require('child_process');
 const { promisify } = require('util');
 require('dotenv').config();
 
@@ -77,11 +78,7 @@ const SAMPLE_QUOTES = [
   { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
 ];
 
-// ---------------------------------------------------------------------------
 // Bundled sound fallback — real myinstants MP3 URLs, all verified live
-// (curl -I => 200 audio/mpeg) on 2026-11-18. Used when the live scrape is
-// blocked, rate-limited or returns no parseable results.
-// ---------------------------------------------------------------------------
 const BUNDLED_SOUNDS = [
   { name: 'Bruh Sound Effect #2', file: 'bruh-sound-effect-2.mp3' },
   { name: 'BRUH', file: 'movie_1.mp3' },
@@ -103,9 +100,7 @@ const BUNDLED_SOUNDS = [
   imageUrl: `${MYINSTANTS}/favicon.ico`,
 }));
 
-// ---------------------------------------------------------------------------
 // Shared helpers
-// ---------------------------------------------------------------------------
 function dbConfig() {
   return {
     user: process.env.ORACLE_USER,
@@ -114,11 +109,7 @@ function dbConfig() {
   };
 }
 
-// ---------------------------------------------------------------------------
 // Oracle connection pool. Created once at startup with retry; every DB helper
-// and sync endpoint uses it. If pool creation fails (e.g. no DB at demo time)
-// we transparently fall back to a direct getConnection() per request.
-// ---------------------------------------------------------------------------
 let pool = null;
 let poolInitPromise = null;
 const POOL_MIN = Math.max(0, parseInt(process.env.ORACLE_POOL_MIN || '0', 10) || 0);
@@ -378,9 +369,7 @@ function detectMime(fileName, contentType) {
   return fromExt || ct || 'application/octet-stream';
 }
 
-// ---------------------------------------------------------------------------
 // Original sync endpoints (preserved)
-// ---------------------------------------------------------------------------
 
 // Health check - should be called as /api/health
 app.get('/api/health', async (req, res) => {
@@ -618,11 +607,7 @@ app.post('/api/quotes', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // CORS audio proxy. audioplayers on Flutter Web sets crossOrigin=anonymous;
-// myinstants.com does not send Access-Control-Allow-Origin, so remote MP3s
-// would be blocked in the browser. Only known audio hosts are allowed.
-// ---------------------------------------------------------------------------
 const AUDIO_PROXY_HOSTS = new Set([
   'www.myinstants.com',
   'myinstants.com',
@@ -740,15 +725,7 @@ app.get('/api/sounds/proxy', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
 // myinstants.com live sound search
-//
-// Current markup (verified 2026-11-18) is `<div class="instant">` containing
-//   <button class="small-button" onclick="play('/media/sounds/x.mp3', ...)">
-//   <a class="instant-link">Sound name</a>
-// Individual endpoints intermittently return 404, so we try several candidate
-// URLs in order. The bundled fallback is used only if every endpoint fails.
-// ---------------------------------------------------------------------------
 function parseInstantsHtml(html, category) {
   const $ = cheerio.load(html);
   const seen = new Set();
@@ -861,9 +838,6 @@ app.get('/api/sounds', async (req, res) => {
   res.json({ success: true, sounds: sounds.slice(0, limit), source });
 });
 
-// ---------------------------------------------------------------------------
-// NEW: file storage (Oracle BLOB primary, local disk fallback)
-// ---------------------------------------------------------------------------
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_MB * 1024 * 1024 },
@@ -936,25 +910,61 @@ app.get('/api/files/:id', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// NEW: video / direct-media ripper
-// ---------------------------------------------------------------------------
 const VIDEO_HOST_RE = /(youtube\.com|youtu\.be|tiktok\.com|vm\.tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com|vimeo\.com|reddit\.com)/i;
 const MEDIA_EXT_RE = /\.(mp3|mp4|m4a|aac|wav|ogg|opus|webm|mov|flac|mkv|mka)(\?|#|$)/i;
 
-const DEFAULT_YTDLP_BIN = '/Users/sarbeshwor/Library/Python/3.13/bin/yt-dlp';
-const DEFAULT_FFMPEG_BIN = '/Users/sarbeshwor/.hermes/tools/ffmpeg-9.0.1-darwin-arm64/ffmpeg';
+/** Resolve an external binary without hard-coding any developer's paths. */
+function whichBinary(command) {
+  const finder = process.platform === 'win32' ? 'where' : 'which';
+  try {
+    const result = spawnSync(finder, [command], {
+      encoding: 'utf8',
+      timeout: 3000,
+    });
+    if (result.status === 0) {
+      const found = String(result.stdout || '').split(/\r?\n/).find(Boolean);
+      if (found && fs.existsSync(found)) return found;
+    }
+  } catch (_) {
+    // Fall through to the candidate paths below.
+  }
+  return null;
+}
+
+function pythonUserBinCandidates(command) {
+  const root = path.join(os.homedir(), 'Library', 'Python');
+  if (!fs.existsSync(root)) return [];
+  return fs
+    .readdirSync(root)
+    .map((version) => path.join(root, version, 'bin', command))
+    .filter((candidate) => fs.existsSync(candidate));
+}
+
+function resolveBinary(envName, command, candidates = []) {
+  const override = String(process.env[envName] || '').trim();
+  if (override) return override;
+  const onPath = whichBinary(command);
+  if (onPath) return onPath;
+  for (const candidate of [...candidates, ...pythonUserBinCandidates(command)]) {
+    if (candidate && fs.existsSync(candidate)) return candidate;
+  }
+  return command;
+}
 
 function ytdlpPath() {
-  const override = String(process.env.YTDLP_PATH || '').trim();
-  if (override) return override;
-  return fs.existsSync(DEFAULT_YTDLP_BIN) ? DEFAULT_YTDLP_BIN : 'yt-dlp';
+  return resolveBinary('YTDLP_PATH', 'yt-dlp', [
+    path.join(os.homedir(), '.local', 'bin', 'yt-dlp'),
+    '/usr/local/bin/yt-dlp',
+    '/opt/homebrew/bin/yt-dlp',
+  ]);
 }
 
 function ffmpegPath() {
-  const override = String(process.env.FFMPEG_PATH || '').trim();
-  if (override) return override;
-  return fs.existsSync(DEFAULT_FFMPEG_BIN) ? DEFAULT_FFMPEG_BIN : 'ffmpeg';
+  return resolveBinary('FFMPEG_PATH', 'ffmpeg', [
+    path.join(os.homedir(), '.local', 'bin', 'ffmpeg'),
+    '/usr/local/bin/ffmpeg',
+    '/opt/homebrew/bin/ffmpeg',
+  ]);
 }
 
 /** Remove every temp artifact created for a rip/extract job. */
@@ -1019,7 +1029,7 @@ async function ripWithYtdlp(url) {
     error.status = 503;
     throw error;
   }
-  const tmpBase = path.join(require('os').tmpdir(), `hypemotiv-rip-${crypto.randomUUID()}`);
+  const tmpBase = path.join(os.tmpdir(), `hypemotiv-rip-${crypto.randomUUID()}`);
   try {
     await execFileAsync(
       ytdlpPath(),
@@ -1028,9 +1038,9 @@ async function ripWithYtdlp(url) {
     );
     let produced = tmpBase;
     if (!fs.existsSync(produced)) {
-      const candidate = fs.readdirSync(require('os').tmpdir())
+      const candidate = fs.readdirSync(os.tmpdir())
         .find((n) => n.startsWith(path.basename(tmpBase) + '.'));
-      if (candidate) produced = path.join(require('os').tmpdir(), candidate);
+      if (candidate) produced = path.join(os.tmpdir(), candidate);
     }
     if (!fs.existsSync(produced)) throw new Error('yt-dlp produced no output file');
     const buffer = fs.readFileSync(produced);
@@ -1162,9 +1172,6 @@ app.post('/api/rip', async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------------
-// NEW: video -> MP3 extraction (yt-dlp first, ffmpeg only as fallback)
-// ---------------------------------------------------------------------------
 const VIDEO_EXT_FOR_EXTRACT = /\.(mp4|mov|webm|mkv|avi|m4v|flv|wmv|mpeg|mpg|3gp)$/i;
 
 app.post('/api/extract-audio', (req, res) => {
@@ -1182,7 +1189,7 @@ app.post('/api/extract-audio', (req, res) => {
       return jsonError(res, 415, "multipart field 'file' must be a video/* file");
     }
 
-    const tmpBase = path.join(require('os').tmpdir(), `hypemotiv-extract-${crypto.randomUUID()}`);
+    const tmpBase = path.join(os.tmpdir(), `hypemotiv-extract-${crypto.randomUUID()}`);
     const srcExt = (path.extname(originalName).toLowerCase().match(/^\.[a-z0-9]+$/) || ['.mp4'])[0];
     const inputPath = `${tmpBase}${srcExt}`;
     const outputPath = `${tmpBase}.mp3`;
@@ -1192,7 +1199,6 @@ app.post('/api/extract-audio', (req, res) => {
     try {
       fs.writeFileSync(inputPath, req.file.buffer);
 
-      // 1) yt-dlp extracts the audio track directly to MP3 (never a playlist).
       try {
         await execFileAsync(ytdlpPath(), [
           '--extract-audio', '--audio-format', 'mp3', '--no-playlist',
@@ -1205,7 +1211,6 @@ app.post('/api/extract-audio', (req, res) => {
         console.warn('[extract-audio] yt-dlp failed, trying ffmpeg:', err.message);
       }
 
-      // 2) ffmpeg fallback — only when yt-dlp failed or produced nothing.
       if (!produced) {
         try {
           await execFileAsync(ffmpegPath(), [
@@ -1250,14 +1255,18 @@ app.post('/api/extract-audio', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// NEW: Roboflow toothbrush detection (optional; app falls back when disabled)
-// ---------------------------------------------------------------------------
+app.get('/api/detect/status', (req, res) => {
+  const configured = Boolean(
+    String(process.env.ROBOFLOW_API_KEY || '').trim() &&
+    String(process.env.ROBOFLOW_MODEL_ID || '').trim()
+  );
+  res.json({ configured });
+});
+
 app.post('/api/detect/toothbrush', (req, res) => {
   const apiKey = String(process.env.ROBOFLOW_API_KEY || '').trim();
   const modelId = String(process.env.ROBOFLOW_MODEL_ID || '').trim();
   if (!apiKey || !modelId) {
-    // HTTP 200 + configured:false lets the app use its local fallback.
     return res.json({ success: false, configured: false, detections: [] });
   }
   upload.single('file')(req, res, async (multerErr) => {
@@ -1312,9 +1321,6 @@ app.post('/api/detect/toothbrush', (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// NEW: email delivery (nodemailer SMTP, outbox.log demo fallback)
-// ---------------------------------------------------------------------------
 function appendOutbox({ to, subject, body }) {
   const entry = {
     timestamp: new Date().toISOString(),

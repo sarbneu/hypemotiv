@@ -1,4 +1,3 @@
-/// Persists the user's selected wake-up tasks.
 library;
 
 import 'package:shared_preferences/shared_preferences.dart';

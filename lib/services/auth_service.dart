@@ -1,7 +1,3 @@
-/// Simple local account for the student prototype.
-///
-/// Credentials are stored on the device only. This is a demo account system,
-/// not production authentication — no password is ever sent to a server.
 library;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +10,27 @@ class AuthService {
   static const String userKey = 'hypemotiv_account_user';
   static const String passKey = 'hypemotiv_account_pass';
   static const String sessionKey = 'hypemotiv_session';
+
+  static String? validateUser(String raw) {
+    final String user = raw.trim().toLowerCase();
+    if (user.isEmpty) return 'Enter an email address or a handle';
+    if (user.contains(RegExp(r'\s'))) return 'No spaces are allowed';
+    if (user.length < 3) return 'Use at least 3 characters';
+    if (!RegExp(r'^[a-z0-9._@-]+$').hasMatch(user)) {
+      return 'Use letters, numbers, @, dot, dash or underscore only';
+    }
+    return null;
+  }
+
+  static String? validatePasscode(String raw, {String? confirmation}) {
+    final String pass = raw.trim();
+    if (pass.isEmpty) return 'Enter a passcode (even one character is fine)';
+    if (pass.length > 64) return 'Passcode is too long';
+    if (confirmation != null && pass != confirmation.trim()) {
+      return 'Passcodes do not match';
+    }
+    return null;
+  }
 
   Future<bool> isRegistered() async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,7 +50,6 @@ class AuthService {
     await prefs.setString(sessionKey, user.trim().toLowerCase());
   }
 
-  /// Returns true when the handle and passcode match the local account.
   Future<bool> login(String user, String passcode) async {
     final prefs = await SharedPreferences.getInstance();
     final storedUser = prefs.getString(userKey);

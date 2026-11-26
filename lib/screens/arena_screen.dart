@@ -1,4 +1,3 @@
-/// Screen 02 — morning alarm dashboard.
 library;
 
 import 'dart:io';
@@ -19,12 +18,12 @@ import 'package:hypemotiv/utils/sound_catalog.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
 const List<Map<String, String>> kAlarmSounds = <Map<String, String>>[
-  {'name': 'Bruh', 'url': 'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3'},
-  {'name': 'Airhorn', 'url': 'https://www.myinstants.com/media/sounds/airhorn.mp3'},
-  {'name': 'Roblox OOF', 'url': 'https://www.myinstants.com/media/sounds/roblox-oof.mp3'},
-  {'name': 'Emotional Damage', 'url': 'https://www.myinstants.com/media/sounds/emotional-damage.mp3'},
-  {'name': 'FBI Open Up', 'url': 'https://www.myinstants.com/media/sounds/fbi-open-up.mp3'},
-  {'name': 'Bell', 'url': 'https://www.myinstants.com/media/sounds/bell.mp3'},
+  {'name': 'Military Wake Up', 'url': 'assets/audio/military-bugle-wake-up-call.mp3'},
+  {'name': 'Nuclear Siren', 'url': 'assets/audio/nuclear-alarm-siren.mp3'},
+  {'name': 'Danger Siren', 'url': 'assets/audio/danger-siren-alarm.mp3'},
+  {'name': 'Bass Boosted Alarm', 'url': 'assets/audio/samsung-bass-boosted-alarm.mp3'},
+  {'name': 'Airhorn', 'url': 'assets/audio/airhorn.mp3'},
+  {'name': 'Bruh', 'url': 'assets/audio/bruh.mp3'},
 ];
 
 class ArenaScreen extends StatefulWidget {
@@ -64,8 +63,7 @@ class _Protocol {
 }
 
 class _ArenaScreenState extends State<ArenaScreen> {
-  static const String _fallbackSoundUrl =
-      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
+  static const String _fallbackSoundUrl = 'assets/audio/bruh.mp3';
 
   final List<_Protocol> _protocols = <_Protocol>[
     const _Protocol(
@@ -130,7 +128,6 @@ class _ArenaScreenState extends State<ArenaScreen> {
     try {
       await AudioService().play(_drillUrl);
     } catch (_) {
-      // Audio failures never reach the UI.
     }
     if (!mounted) return;
     setState(() => _audioLoading = false);

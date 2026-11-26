@@ -1,4 +1,3 @@
-/// Available wake-up tasks that can be required before the alarm is disarmed.
 library;
 
 class WakeTask {

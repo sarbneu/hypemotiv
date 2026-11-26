@@ -1,4 +1,3 @@
-/// Main dashboard shell with five navigation tabs (including Sleep tracking).
 library;
 
 import 'package:flutter/material.dart';

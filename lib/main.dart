@@ -1,10 +1,3 @@
-/// HypeMotiv - meme audio alarm, daily habit checklist and streak tracker.
-///
-/// Architecture:
-///  - Flutter app + Hive for offline-first local storage
-///  - Node.js/Express REST backend (`oracle-backend/`) hosted on an Oracle Cloud VPS
-///  - Oracle Database for relational data and BLOB file storage
-///  - nodemailer for accountability email, myinstants scraping and video audio ripping
 library;
 
 import 'package:flutter/material.dart';
@@ -19,16 +12,12 @@ import 'package:hypemotiv/widgets/cyber_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Boxes must be open before any service looks them up.
   await HiveInitializer.init();
 
-  // Real alarm / reminder notifications.
   await NotificationService().init();
 
-  // Persisted light/dark preference.
   await ThemeService().init();
 
-  // Non-Hive services are safe to initialise afterwards.
   await AudioService().init();
   await TTSService().init();
 

@@ -1,4 +1,3 @@
-/// Screen 03 — sound library, audio extraction and recordings.
 library;
 
 import 'dart:async';
@@ -17,48 +16,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 const String _kSavedAlarmKey = 'hype_saved_alarm_sound';
 
 final List<Sound> _featuredSounds = <Sound>[
-  Sound(
-    id: 'bruh_2',
-    name: 'Bruh Sound #2',
-    url: 'https://www.myinstants.com/media/sounds/bruh-sound-2.mp3',
-    category: 'Meme',
-    imageUrl: '',
-  ),
-  Sound(
-    id: 'roblox_oof',
-    name: 'Roblox OOF',
-    url: 'https://www.myinstants.com/media/sounds/roblox-oof.mp3',
-    category: 'Meme',
-    imageUrl: '',
-  ),
-  Sound(
-    id: 'airhorn_stadium',
-    name: 'Airhorn Stadium',
-    url: 'https://www.myinstants.com/media/sounds/airhorn-stadium.mp3',
-    category: 'Alarm',
-    imageUrl: '',
-  ),
-  Sound(
-    id: 'emotional_damage',
-    name: 'Emotional Damage!',
-    url: 'https://www.myinstants.com/media/sounds/emotional-damage.mp3',
-    category: 'Meme',
-    imageUrl: '',
-  ),
-  Sound(
-    id: 'robert_b_weide',
-    name: 'Robert B. Weide',
-    url: 'https://www.myinstants.com/media/sounds/robert-b-weide.mp3',
-    category: 'Meme',
-    imageUrl: '',
-  ),
-  Sound(
-    id: 'fbi_open_up',
-    name: 'FBI Open Up',
-    url: 'https://www.myinstants.com/media/sounds/fbi-open-up.mp3',
-    category: 'Meme',
-    imageUrl: '',
-  ),
+  Sound(id: 'military', name: 'Military Wake Up', url: 'assets/audio/military-bugle-wake-up-call.mp3', category: 'Alarm', imageUrl: ''),
+  Sound(id: 'nuclear', name: 'Nuclear Siren', url: 'assets/audio/nuclear-alarm-siren.mp3', category: 'Alarm', imageUrl: ''),
+  Sound(id: 'danger', name: 'Danger Siren', url: 'assets/audio/danger-siren-alarm.mp3', category: 'Alarm', imageUrl: ''),
+  Sound(id: 'bass', name: 'Bass Boosted Alarm', url: 'assets/audio/samsung-bass-boosted-alarm.mp3', category: 'Alarm', imageUrl: ''),
+  Sound(id: 'airhorn', name: 'Airhorn', url: 'assets/audio/airhorn.mp3', category: 'Meme', imageUrl: ''),
+  Sound(id: 'bruh', name: 'Bruh', url: 'assets/audio/bruh.mp3', category: 'Meme', imageUrl: ''),
 ];
 
 class SoundLabScreen extends StatefulWidget {
@@ -69,10 +32,8 @@ class SoundLabScreen extends StatefulWidget {
 }
 
 class _SoundLabScreenState extends State<SoundLabScreen> {
-  static const String _fallbackSoundUrl =
-      'https://www.myinstants.com/media/sounds/bruh-sound-effect_WstdzdM.mp3';
+  static const String _fallbackSoundUrl = 'assets/audio/bruh.mp3';
 
-  final TextEditingController _ripController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _roastController = TextEditingController();
   final TTSService _tts = TTSService();
@@ -98,7 +59,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
   @override
   void dispose() {
     _recordingTimer?.cancel();
-    _ripController.dispose();
     _searchController.dispose();
     _roastController.dispose();
     unawaited(_tts.dispose());
@@ -145,28 +105,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     });
   }
 
-  Future<void> _rip() async {
-    final String url = _ripController.text.trim();
-    if (url.isEmpty) {
-      _toast('Paste a link first');
-      return;
-    }
-    setState(() => _ripBusy = true);
-    final Map<String, dynamic>? data = await HypeApi().ripAudioDetailed(url);
-    if (!mounted) return;
-    final String? extracted = data?['url'] as String?;
-    setState(() {
-      _ripUrl = extracted;
-      _ripBusy = false;
-    });
-    if (extracted != null) {
-      _toast('Audio extracted');
-      return;
-    }
-    final Object? error = data?['error'] ?? data?['message'] ?? data?['details'];
-    _toast(error == null ? 'Could not extract audio' : 'Rip failed: $error');
-  }
-
   Future<void> _uploadVideoAndExtract() async {
     final List<PlatformFile> picked = await FilePicker.pickFiles(
       type: FileType.video,
@@ -190,7 +128,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     try {
       await AudioService().play(url ?? _fallbackSoundUrl);
     } catch (_) {
-      // Audio failures never reach the UI.
     }
     _toast('Playing preview');
   }
@@ -214,7 +151,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     try {
       await _tts.speakWithCharacter(text.trim(), _voiceCharacter);
     } catch (_) {
-      // TTS failures never reach the UI.
     }
   }
 
@@ -232,7 +168,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     if (!mounted) return;
     setState(() => _recording = false);
 
-    // file_picker v12+ returns List<PlatformFile> and uses a static API.
     final List<PlatformFile> picked = await FilePicker.pickFiles(
       type: FileType.audio,
     );
@@ -277,7 +212,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 22),
 
-                  // Extract audio from a video
                   CyberCard(
                     glow: true,
                     child: Column(
@@ -285,35 +219,17 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                       children: <Widget>[
                         const SectionLabel(
                           'Extract audio from a video',
-                          trailing: 'Optional',
+                          trailing: 'Local file',
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Paste a TikTok, Reels or YouTube link',
+                          'Choose a video saved on your phone. Only its audio track is kept.',
                           style: TextStyle(
                             color: Color(0xFF667085),
                             fontSize: 14,
                           ),
                         ),
                         const SizedBox(height: 12),
-                        TextField(
-                          controller: _ripController,
-                          decoration: const InputDecoration(
-                            hintText: 'https://tiktok.com/@runner/video/...',
-                            prefixIcon: Icon(
-                              Icons.link,
-                              color: Color(0xFF0F766E),
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        NeonButton(
-                          label: _ripBusy ? 'Extracting...' : 'Extract audio',
-                          icon: Icons.content_cut,
-                          onPressed: _rip,
-                        ),
-                        const SizedBox(height: 8),
                         OutlinedButton.icon(
                           icon: const Icon(Icons.video_file),
                           label: const Text('Upload video file and extract audio'),
@@ -377,7 +293,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Popular sounds
                   const SectionLabel(
                     'Popular sounds',
                     trailing: 'Browse',
@@ -512,7 +427,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ],
                   const SizedBox(height: 24),
 
-                  // Voice recordings
                   const SectionLabel(
                     'Voice recordings',
                     trailing: 'Ready',

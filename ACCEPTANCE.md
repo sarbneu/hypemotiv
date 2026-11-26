@@ -84,3 +84,26 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Toothbrush: POST /api/detect/toothbrush wraps Roboflow inference returning boxes + confidence; unconfigured mode returns configured:false and deterministic proof still passes. Credentials are env-only.
 - Jumping jacks: camera + ML Kit PoseDetector screen with elbow-angle and leg-spread rep counting; manual accelerometer fallback retained.
 - Verification: flutter analyze clean, 11/11 tests, web/macos/phone APK builds OK, backend smoke 8/8, targeted endpoint probes 5/5.
+
+
+## Release APK startup fix (2026-11-25)
+
+- Symptom: release APK crashed on startup with `Failed to create an instance of androidx.work.impl.WorkDatabase`.
+- Cause: ML Kit acceleration pulls in WorkManager 2.7.0; R8 stripped classes needed by WorkManager/Room in the release build.
+- Fix: added `android/app/proguard-rules.pro` with keep rules for `androidx.work`, `androidx.room`, ML Kit classes; enabled minification with those rules in `android/app/build.gradle.kts`.
+- Verified: rebuilt release APK installs, launches, and renders the Create account screen with no fatal exception.
+
+
+## Audio button latency (2026-11-25)
+
+- Removed per-press `stop()` and `setReleaseMode()` calls; release mode is only changed when loop state actually changes.
+- Web audio bytes are cached in memory (12 entries) so repeat previews do not re-fetch the same URL.
+- Bundled asset sounds still play directly with no network.
+
+
+## Sensor/detection status and per-attempt maths (2026-11-26)
+
+- Added Sensors and detection screen in More: checks accelerometer stream, camera count and Roboflow detector configuration.
+- Added GET /api/detect/status so the app can show whether live toothbrush detection is configured.
+- First-run setup now shows a visible Maths level button for every user.
+- Wrong maths answers load a new question; Maths picker previews three different questions and has a shuffle button.

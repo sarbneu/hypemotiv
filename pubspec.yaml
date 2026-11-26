@@ -58,3 +58,9 @@ flutter:
   assets:
     - assets/
     - assets/audio/test_alarm.wav
+    - assets/audio/military-bugle-wake-up-call.mp3
+    - assets/audio/nuclear-alarm-siren.mp3
+    - assets/audio/danger-siren-alarm.mp3
+    - assets/audio/samsung-bass-boosted-alarm.mp3
+    - assets/audio/airhorn.mp3
+    - assets/audio/bruh.mp3

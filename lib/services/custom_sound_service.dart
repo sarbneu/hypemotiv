@@ -1,8 +1,3 @@
-/// Lets the user pick an audio file from the phone and keep it in the app.
-///
-/// The file is copied into the app's documents folder, so it survives
-/// restarts and works without the backend. Uploading to the backend is
-/// optional and only adds a remote copy.
 library;
 
 import 'dart:convert';
@@ -66,8 +61,6 @@ class CustomSoundService {
         .toList();
   }
 
-  /// Pick a file, copy it into the app, and save its metadata.
-  /// Returns the saved sound, or null if the user cancelled.
   Future<CustomSound?> pickAndSave() async {
     final List<PlatformFile> picked = await FilePicker.pickFiles(
       type: FileType.audio,
@@ -83,7 +76,6 @@ class CustomSoundService {
     final File destination = File('${dir.path}/$fileName');
     await destination.writeAsBytes(await File(file.path!).readAsBytes());
 
-    // Optional remote copy. The local copy is what makes it work offline.
     String? remoteUrl;
     try {
       remoteUrl = await HypeApi().uploadFile(

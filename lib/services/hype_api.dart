@@ -1,18 +1,3 @@
-/// HypeMotiv extended API client.
-///
-/// Capabilities the base Oracle REST bridge does not have:
-///   1. myinstants.com sound scraping  (GET  /api/sounds?q=)
-///   2. Oracle BLOB file storage       (POST /api/files/upload, GET /api/files/:id)
-///   3. Video -> audio extraction      (POST /api/extract-audio)
-///   4. Link -> audio ripper           (POST /api/rip)
-///   5. Toothbrush photo detection     (POST /api/detect/toothbrush)
-///   6. Node/email delivery            (POST /api/email/send)
-///
-/// `OracleConfig.apiBaseUrl` already ends in `/api`, so each path below is
-/// written relative to it (`$base/extract-audio` == `/api/extract-audio`).
-///
-/// Every method is network-fail-safe: the UI keeps working offline and shows
-/// local/demo data instead of crashing when the Node backend is not running.
 library;
 
 import 'dart:convert';
@@ -23,8 +8,8 @@ import 'package:http/http.dart' as http;
 
 import '../utils/oracle_config.dart';
 import 'sound_service.dart';
+import '../utils/sound_catalog.dart';
 
-/// One bounding box from the optional toothbrush detector.
 class DetectionBox {
   const DetectionBox({
     required this.className,
@@ -37,7 +22,6 @@ class DetectionBox {
 
   factory DetectionBox.fromJson(Map<String, dynamic> json) {
     return DetectionBox(
-      // The backend key is `class` (a reserved word in Dart).
       className: (json['class'] ?? json['className'] ?? 'unknown').toString(),
       confidence: _asDouble(json['confidence']),
       x: _asDouble(json['x']),
@@ -47,7 +31,6 @@ class DetectionBox {
     );
   }
 
-  /// `class` from the wire payload, exposed under two convenient names.
   final String className;
   String get label => className;
 
@@ -69,7 +52,6 @@ double _asDouble(Object? value) {
 bool _hasValue(Object? value) =>
     value != null && value.toString().trim().isNotEmpty;
 
-/// Render nested backend error payloads (`{error: {message: ...}}`) readable.
 String _flatten(Object? value) {
   if (value == null) return '';
   if (value is Map) {
@@ -88,11 +70,6 @@ class HypeApi {
 
   static String get base => OracleConfig.apiBaseUrl;
 
-  /// On Flutter Web, audioplayers creates an HTMLAudioElement with
-  /// crossOrigin=anonymous, and almost no media host sends CORS headers.
-  /// Route every remote http(s) URL through the backend's same-origin proxy.
-  /// Other schemes are returned untouched so the caller can reject them with
-  /// a clear message. Native keeps the direct URL (works with no backend).
   static String playableUrl(String url) {
     if (!kIsWeb) return url;
     final Uri? uri = Uri.tryParse(url);
@@ -102,8 +79,6 @@ class HypeApi {
     return '$base/sounds/proxy?url=${Uri.encodeComponent(url)}';
   }
 
-  /// True for schemes that cannot be fetched on the web (`file://`, `blob:`,
-  /// `data:`, custom app protocols, ...). An empty scheme is a relative path.
   static bool isUnsupportedAudioScheme(String url) {
     final Uri? uri = Uri.tryParse(url);
     if (uri == null) return false;
@@ -111,8 +86,6 @@ class HypeApi {
     return scheme.isNotEmpty && scheme != 'http' && scheme != 'https';
   }
 
-  /// Minimal audio sniffer for the web fetch path: returns a readable format
-  /// name only when [bytes] begin with a known audio magic signature.
   static String? detectAudioFormat(List<int> bytes) {
     if (bytes.length >= 3 &&
         bytes[0] == 0x49 &&
@@ -134,7 +107,6 @@ class HypeApi {
     return null;
   }
 
-  /// True when a response body is an HTML/XML error page, not audio.
   static bool looksLikeHtml(List<int> bytes) {
     final String head = String.fromCharCodes(bytes.take(256)).toLowerCase();
     return head.contains('<!doctype') ||
@@ -148,7 +120,6 @@ class HypeApi {
 
   static const Duration _timeout = Duration(seconds: 20);
 
-  /// Connectivity check. Returns true only when the Node backend is reachable.
   Future<bool> isOnline() async {
     try {
       final response = await http
@@ -160,31 +131,26 @@ class HypeApi {
     }
   }
 
-  /// Search myinstants.com through the backend scraper.
-  /// Falls back to the bundled offline sound list if the backend is down.
   Future<List<Sound>> fetchSounds({String query = '', int limit = 50}) async {
-    try {
-      final uri = Uri.parse('$base/sounds').replace(
-        queryParameters: {'q': query, 'limit': '$limit'},
-      );
-      final response = await http.get(uri).timeout(_timeout);
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final list = (data['sounds'] as List<dynamic>?) ?? const [];
-        final sounds = list
-            .whereType<Map>()
-            .map((e) => Sound.fromJson(Map<String, dynamic>.from(e)))
-            .toList();
-        if (sounds.isNotEmpty) return sounds.take(limit).toList();
-      }
-    } catch (_) {
-      // offline
-    }
-    return SoundService().fetchSounds(limit: limit);
+    final String q = query.trim().toLowerCase();
+    return defaultSoundOptions
+        .where(
+          (SoundOption option) =>
+              q.isEmpty || option.name.toLowerCase().contains(q),
+        )
+        .take(limit)
+        .map(
+          (SoundOption option) => Sound(
+            id: option.name,
+            name: option.name,
+            url: option.url,
+            category: 'Bundled',
+            imageUrl: '',
+          ),
+        )
+        .toList();
   }
 
-  /// Upload a local file (meme audio, proof photo, ripped audio) into Oracle
-  /// as a BLOB. Returns the public download URL, or null on failure.
   Future<String?> uploadFile(
     File file, {
     String userId = 'demo',
@@ -205,13 +171,10 @@ class HypeApi {
         return data['url'] as String?;
       }
     } catch (_) {
-      // offline
     }
     return null;
   }
 
-  /// Send a recorded video to `POST /api/extract-audio` (multipart `file`,
-  /// `kind=video`) and return the Oracle-hosted audio URL from `data['url']`.
   Future<String?> uploadVideoAndExtract(
     File video, {
     String userId = 'demo',
@@ -245,10 +208,6 @@ class HypeApi {
     return null;
   }
 
-  /// Paste a TikTok / Reels / YouTube / direct-media URL and get back an
-  /// Oracle-hosted audio URL. Returns null on failure, but always prints the
-  /// backend's error message instead of swallowing it. Use [ripAudioDetailed]
-  /// when the UI needs to explain *why* a rip failed.
   Future<String?> ripAudio(String url, {String userId = 'demo'}) async {
     final Map<String, dynamic>? data =
         await ripAudioDetailed(url, userId: userId);
@@ -262,9 +221,6 @@ class HypeApi {
     return null;
   }
 
-  /// Full backend response for a rip request, including any error details.
-  /// Never throws: transport problems come back as `{'error': '...'}` so the
-  /// UI can show them. Success payloads are returned unchanged.
   Future<Map<String, dynamic>?> ripAudioDetailed(
     String url, {
     String userId = 'demo',
@@ -318,13 +274,19 @@ class HypeApi {
     return parts.isEmpty ? 'unknown backend error' : parts.join(' | ');
   }
 
-  /// Run the optional toothbrush detector on a proof photo.
-  ///
-  /// Returns a map with `success`, `configured`, `detections` (parsed
-  /// [DetectionBox] objects), `raw` backend JSON and possibly `error`.
-  /// `null` means the backend could not be reached at all. `configured:false`
-  /// means the server is reachable but has no detector model installed, so
-  /// callers can keep their deterministic checks in that case.
+  Future<bool> detectorConfigured() async {
+    try {
+      final http.Response response =
+          await http.get(Uri.parse('$base/detect/status')).timeout(_timeout);
+      if (response.statusCode != 200) return false;
+      final Object? decoded = jsonDecode(response.body);
+      return decoded is Map<String, dynamic> &&
+          decoded['configured'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<Map<String, dynamic>?> detectToothbrush(File photo) async {
     try {
       final http.MultipartRequest request = http.MultipartRequest(
@@ -380,8 +342,6 @@ class HypeApi {
     }
   }
 
-  /// Send an accountability email through the Node/nodemailer endpoint.
-  /// Returns true on success.
   Future<bool> sendEmail({
     required String to,
     required String subject,

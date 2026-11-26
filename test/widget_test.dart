@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hypemotiv/main.dart';
 import 'package:hypemotiv/screens/login_screen.dart';
+import 'package:hypemotiv/screens/setup_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
 import 'package:hypemotiv/services/proof_verification_service.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
@@ -150,6 +152,58 @@ void main() {
 
     expect(service.isDistinctCapture(first, tooSoon), isFalse);
     expect(service.isDistinctCapture(first, valid), isTrue);
+  });
+
+
+  test('shared auth validators enforce handle and passcode rules', () {
+    expect(AuthService.validateUser(''), isNotNull);
+    expect(AuthService.validateUser('ab'), isNotNull);
+    expect(AuthService.validateUser('bad handle'), isNotNull);
+    expect(AuthService.validateUser('runner09'), isNull);
+
+    expect(AuthService.validatePasscode(''), isNotNull);
+    expect(AuthService.validatePasscode('1' * 65), isNotNull);
+    expect(AuthService.validatePasscode('1'), isNull);
+    expect(
+      AuthService.validatePasscode('abc', confirmation: 'abd'),
+      'Passcodes do not match',
+    );
+  });
+
+  testWidgets('finish setup rejects an empty passcode', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    bool entered = false;
+    await tester.pumpWidget(
+      MaterialApp(home: SetupScreen(onEnter: () => entered = true)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.ensureVisible(find.text('Finish setup'));
+    await tester.pump();
+    await tester.tap(find.text('Finish setup'));
+    await tester.pumpAndSettle();
+
+    expect(entered, isFalse);
+    expect(find.text('Enter a passcode (even one character is fine)'), findsWidgets);
+  });
+
+
+  test('math task supports easy difficulty and custom questions', () async {
+    SharedPreferences.setMockInitialValues({});
+    final MathTaskService service = MathTaskService();
+
+    await service.setDifficulty('Easy');
+    final MathProblem easy = await service.nextProblem();
+    expect(easy.question.contains('+') || easy.question.contains('−'), isTrue);
+
+    await service.addCustom('What is 7 + 5?', 12);
+    expect((await service.customQuestions()).length, 1);
+    final MathProblem custom = await service.nextProblem();
+    expect(custom.question, 'What is 7 + 5?');
+    expect(custom.answer, 12);
+
+    await service.removeCustom(0);
+    expect(await service.customQuestions(), isEmpty);
   });
 
 }

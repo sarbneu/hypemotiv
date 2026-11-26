@@ -1,4 +1,3 @@
-/// Streak tracking screen - showing daily streaks and progress.
 library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/streak_service.dart';

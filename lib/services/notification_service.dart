@@ -1,6 +1,3 @@
-/// Real local notifications for alarms and wind-down reminders.
-///
-/// Initialised once in main(); no fake/toast-only alarms.
 library;
 
 import 'dart:io';
@@ -29,7 +26,6 @@ class NotificationService {
     try {
       tz.setLocalLocation(tz.getLocation('Asia/Kathmandu'));
     } catch (_) {
-      // Keep the package default location if the zone is unavailable.
     }
 
     const AndroidInitializationSettings androidSettings =
@@ -75,7 +71,6 @@ class NotificationService {
         ),
       );
 
-  /// Schedule a one-off alarm notification.
   Future<void> scheduleAlarm({
     required DateTime when,
     required String title,
@@ -95,7 +90,6 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } catch (_) {
-      // Some phones refuse exact alarms; an inexact alarm still fires.
       await _plugin.zonedSchedule(
         id: notificationId,
         title: title,
@@ -107,7 +101,6 @@ class NotificationService {
     }
   }
 
-  /// Schedule a daily repeating reminder (e.g. wind-down at 10:45 PM).
   Future<void> scheduleDaily({
     required int hour,
     required int minute,
@@ -152,7 +145,6 @@ class NotificationService {
     }
   }
 
-  /// Show an alarm notification right now, used by the Test alarm button.
   Future<void> showImmediate({
     required String title,
     required String body,

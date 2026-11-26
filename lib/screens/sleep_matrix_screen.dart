@@ -1,4 +1,3 @@
-/// Sleep tab: real sleep tracking first, then a simple sleep overview.
 library;
 
 import 'package:flutter/material.dart';
@@ -86,7 +85,6 @@ class _SleepMatrixScreenState extends State<SleepMatrixScreen> {
             ),
             const SizedBox(height: 16),
 
-            // The real, usable feature comes first.
             const SleepTrackingSection(),
             const SizedBox(height: 16),
 

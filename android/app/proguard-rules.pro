@@ -1,0 +1,6 @@
+-keep class androidx.work.** { *; }
+-keep class androidx.room.** { *; }
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_vision_common.** { *; }
+-keepattributes *Annotation*
+-keepattributes Signature

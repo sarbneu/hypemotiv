@@ -1,14 +1,10 @@
-/// More hub - reachable entry point for the secondary app features.
-///
-/// Everything on this screen performs a real action: navigating to an existing
-/// screen, sending an accountability email through the Node backend, or
-/// playing a test alarm sound. No stub/toast-only buttons.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/screens/app_root.dart';
 import 'package:hypemotiv/screens/checklist_screen.dart';
 import 'package:hypemotiv/screens/settings_screen.dart';
+import 'package:hypemotiv/screens/sensor_status_screen.dart';
 import 'package:hypemotiv/screens/sleep_tracking_screen.dart';
 import 'package:hypemotiv/screens/streak_screen.dart';
 import 'package:hypemotiv/services/auth_service.dart';
@@ -92,6 +88,21 @@ class MoreScreen extends StatelessWidget {
                 subtitle: const Text('Sound, vibration and notification together'),
                 trailing: const Icon(Icons.play_arrow_rounded),
                 onTap: () => _testAlarmNow(context),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: Icon(Icons.sensors_outlined, color: colors.primary),
+                title: const Text('Sensors and detection'),
+                subtitle: const Text('Check motion, camera and image detection'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) =>
+                        const SensorStatusScreen(),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 24),

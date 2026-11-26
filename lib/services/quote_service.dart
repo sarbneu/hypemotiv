@@ -1,4 +1,3 @@
-/// Quote generator service - generates motivational quotes for text-to-speech.
 library;
 import 'dart:math';
 
@@ -74,7 +73,6 @@ class QuoteService {
     },
   ];
 
-  /// Get a random quote.
   Quote getRandomQuote() {
     final idx = _random.nextInt(_quotes.length);
     final q = _quotes[idx];
@@ -85,7 +83,6 @@ class QuoteService {
     );
   }
 
-  /// Get a quote by index (for testing).
   Quote getQuoteByIndex(int index) {
     final q = _quotes[index % _quotes.length];
     return Quote(
@@ -95,7 +92,6 @@ class QuoteService {
     );
   }
 
-  /// Generate multiple quotes for a challenge.
   List<Quote> generateChallengeQuotes(int count) {
     final result = <Quote>[];
     for (int i = 0; i < count; i++) {
@@ -104,14 +100,10 @@ class QuoteService {
     return result;
   }
 
-  /// Get all available quotes (for reference).
   List<Map<String, String>> getAllQuotes() => List.from(_quotes);
 }
 
-/// Quote service initialization.
 extension QuoteServiceInit on QuoteService {
-  /// Initialize the quote service.
   static Future<void> init() async {
-    // Nothing to initialize for quote service
   }
 }

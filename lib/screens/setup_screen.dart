@@ -1,9 +1,10 @@
-/// Screen 06 — first-run setup / morning routine enrolment.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/screens/math_task_picker_screen.dart';
 import 'package:hypemotiv/screens/task_picker_screen.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:hypemotiv/services/audio_service.dart';
@@ -25,26 +26,54 @@ class _SetupScreenState extends State<SetupScreen> {
     text: 'cybersamurail_09',
   );
   final TextEditingController _passcodeController = TextEditingController();
+  final TextEditingController _confirmController = TextEditingController();
+  String _error = '';
   int _disciplineIndex = 0;
   SoundOption _selectedSound = defaultSoundOptions.first;
   List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
+  String _mathDifficulty = 'Easy';
 
   static const List<String> _disciplines = <String>[
-    'David Goggins',
-    'Brutal friend',
-    'Bass-boosted music',
+    'Military Wake Up',
+    'Nuclear Siren',
+    'Danger Siren',
+    'Bass Boosted Alarm',
+    'Airhorn',
   ];
 
   static const List<IconData> _disciplineIcons = <IconData>[
     Icons.emoji_events,
-    Icons.record_voice_over,
+    Icons.notifications_active,
+    Icons.warning_amber,
     Icons.graphic_eq,
+    Icons.volume_up,
   ];
+
+  Future<void> _finishSetup() async {
+    final String? userError = AuthService.validateUser(_handleController.text);
+    final String? passError = AuthService.validatePasscode(
+      _passcodeController.text,
+      confirmation: _confirmController.text,
+    );
+    final String? problem = userError ?? passError;
+    if (problem != null) {
+      setState(() => _error = problem);
+      _toast(problem);
+      return;
+    }
+    setState(() => _error = '');
+    await AuthService().register(
+      _handleController.text,
+      _passcodeController.text,
+    );
+    widget.onEnter?.call();
+  }
 
   @override
   void dispose() {
     _handleController.dispose();
     _passcodeController.dispose();
+    _confirmController.dispose();
     super.dispose();
   }
 
@@ -63,6 +92,9 @@ class _SetupScreenState extends State<SetupScreen> {
     super.initState();
     TaskSelectionService().selected().then((List<String> ids) {
       if (mounted) setState(() => _selectedTasks = ids);
+    });
+    MathTaskService().difficulty().then((String level) {
+      if (mounted) setState(() => _mathDifficulty = level);
     });
   }
 
@@ -102,7 +134,6 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Alarm sound preview
                   CyberCard(
                     glow: true,
                     child: Column(
@@ -159,6 +190,24 @@ class _SetupScreenState extends State<SetupScreen> {
                       final List<String> ids =
                           await TaskSelectionService().selected();
                       if (mounted) setState(() => _selectedTasks = ids);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.calculate),
+                    label: Text(
+                      'Maths level: $_mathDifficulty (change questions)',
+                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (BuildContext context) =>
+                              const MathTaskPickerScreen(),
+                        ),
+                      );
+                      final String level =
+                          await MathTaskService().difficulty();
+                      if (mounted) setState(() => _mathDifficulty = level);
                     },
                   ),
                   const SizedBox(height: 18),
@@ -226,18 +275,52 @@ class _SetupScreenState extends State<SetupScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 14),
+                  const MicroText(
+                    'Repeat passcode',
+                    color: Color(0xFF667085),
+                    fontSize: 13,
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _confirmController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(
+                        Icons.lock_outline,
+                        color: Color(0xFF3D5AFE),
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                  if (_error.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 10),
+                    Text(
+                      _error,
+                      style: const TextStyle(
+                        color: Color(0xFFF04438),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 20),
 
                   const SectionLabel(
-                    'Choose your alarm style',
-                    trailing: 'One choice',
+                    'Morning rage presets',
+                    trailing: 'Clean audio',
                   ),
                   const SizedBox(height: 10),
                   for (int i = 0; i < _disciplines.length; i++)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: GestureDetector(
-                        onTap: () => setState(() => _disciplineIndex = i),
+                        onTap: () async {
+                          setState(() => _disciplineIndex = i);
+                          if (i < morningRageOptions.length) {
+                            _selectedSound = morningRageOptions[i];
+                            await AudioService().play(_selectedSound.url);
+                          }
+                        },
                         child: CyberCard(
                           glow: _disciplineIndex == i,
                           padding: const EdgeInsets.symmetric(
@@ -324,7 +407,7 @@ class _SetupScreenState extends State<SetupScreen> {
                   NeonButton(
                     label: 'Finish setup',
                     icon: Icons.check,
-                    onPressed: widget.onEnter,
+                    onPressed: _finishSetup,
                   ),
                   const SizedBox(height: 16),
                   Row(

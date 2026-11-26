@@ -1,4 +1,3 @@
-/// Sleep analytics screen - circadian rhythm analysis.
 library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/sleep_tracking_service.dart';

@@ -1,4 +1,3 @@
-/// Streak service - tracks consecutive active days.
 library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/streak.dart';
@@ -13,7 +12,6 @@ class StreakService {
 
   String _currentUserId() => 'default_user';
 
-  /// Get or create the streak for the current user.
   Streak getOrInitStreak() {
     final userId = _currentUserId();
     final existing = _box.get(userId);
@@ -26,14 +24,11 @@ class StreakService {
     return newStreak;
   }
 
-  /// Update streak for the current day (called at app open).
   Future<Streak> updateStreak() async {
     final streak = getOrInitStreak();
     final today = DateTime.now();
 
-    // Check if we need to increment the streak
     if (streak.lastActive == null) {
-      // First time ever
       final updated = streak.copyWith(
         currentStreak: 1,
         longestStreak: 1,
@@ -47,7 +42,6 @@ class StreakService {
 
     Streak updatedStreak;
     if (daysSinceLast == 1) {
-      // Consecutive day
       updatedStreak = streak.copyWith(
         currentStreak: streak.currentStreak + 1,
         longestStreak: streak.currentStreak + 1 > streak.longestStreak
@@ -56,13 +50,11 @@ class StreakService {
         lastActive: today,
       );
     } else if (daysSinceLast > 1) {
-      // Streak broken
       updatedStreak = streak.copyWith(
         currentStreak: 1,
         lastActive: today,
       );
     } else {
-      // Same day, just update
       updatedStreak = streak.copyWith(lastActive: today);
     }
 
@@ -70,9 +62,7 @@ class StreakService {
     return updatedStreak;
   }
 
-  /// Get the current streak count.
   int get currentStreak => getOrInitStreak().currentStreak;
 
-  /// Get the longest streak.
   int get longestStreak => getOrInitStreak().longestStreak;
 }

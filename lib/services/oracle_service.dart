@@ -1,39 +1,19 @@
-/// Oracle Database connectivity service.
-///
-/// NOTE: Flutter/Dart has no official Oracle driver. Oracle is accessed
-/// server-side (Node.js/Express with oracledb) and the mobile app syncs
-/// with the Oracle backend via HTTPS/REST. This service demonstrates the
-/// sync protocol the mobile app uses to talk to Oracle.
-///
-/// Server side (Node.js + oracledb):
-///   const oracledb = require('oracledb');
-///   const conn = await oracledb.getConnection({ user, password, connectString });
-///   const result = await conn.execute('SELECT * FROM hypemotiv.alarm_settings WHERE user_id = :uid', [uid]);
-///
-/// See: README.md for full setup instructions.
 library;
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class OracleService {
 
-  // Endpoints used by the mobile app to sync with Oracle.
   static const String alarmsEndpoint = '/api/alarms';
   static const String checklistsEndpoint = '/api/checklists';
   static const String streaksEndpoint = '/api/streaks';
   static const String quotesEndpoint = '/api/quotes';
 
-  /// Default Oracle REMOTE database host for the local dev server.
-  /// Override via environment variable ORACLE_HOST (default: localhost).
   static String get host =>
       String.fromEnvironment('ORACLE_HOST', defaultValue: 'localhost');
 
-  /// Default port for the Oracle sync REST API.
   static const int port = 3000;
 
-  /// Full base URL, e.g. http://localhost:3000 or https://vps.example.com
-  /// When the app is built with --dart-define=HYPE_API_URL=... the same
-  /// endpoint is used for every service (local dev, emulator and Oracle VPS).
   static String get baseUrl {
     const configured = String.fromEnvironment('HYPE_API_URL');
     if (configured.isNotEmpty) {
@@ -42,10 +22,8 @@ class OracleService {
     return 'http://$host:$port';
   }
 
-  /// Build the full URL for a given endpoint.
   static String endpointUrl(String endpoint) => '$baseUrl$endpoint';
 
-  /// Fetch data from Oracle via REST API.
   static Future<Map<String, dynamic>> fetch(String endpoint) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl$endpoint'));
@@ -58,8 +36,6 @@ class OracleService {
     }
   }
 
-  /// Ping the Oracle sync service health endpoint.
-  /// Returns a [Map] with status info.
   static Future<Map<String, dynamic>> ping() async {
     try {
       final response = await http.get(
@@ -84,12 +60,10 @@ class OracleService {
     }
   }
 
-  /// Example: Fetch user settings from Oracle.
   static Future<Map<String, dynamic>> fetchSettings(String userId) async {
     return fetch('/api/settings?userId=$userId');
   }
 
-  /// Push alarm settings to Oracle.
   static Future<Map<String, dynamic>> saveAlarms(
     String userId,
     List<Map<String, dynamic>> alarms,

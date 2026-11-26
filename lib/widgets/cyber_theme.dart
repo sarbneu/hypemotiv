@@ -1,12 +1,7 @@
-/// HypeMotiv clean design system: palette, theme and reusable widgets.
 library;
 
 import 'package:flutter/material.dart';
 
-/// Calm, light design tokens shared by every HypeMotiv screen.
-///
-/// The getter names are kept for API compatibility with existing screens;
-/// only their values (and the visual treatment of the widgets) changed.
 class CyberTheme {
   CyberTheme._();
 
@@ -20,7 +15,6 @@ class CyberTheme {
   static Color get white => const Color(0xFF1F2933);
   static Color get line => const Color(0xFFE4E7EC);
 
-  /// Light, system-font theme used by the whole app.
   static ThemeData themeData() {
     return ThemeData(
       brightness: Brightness.light,
@@ -93,8 +87,6 @@ class CyberTheme {
   }
 }
 
-/// Small supporting label. Kept for API compatibility; renders as plain,
-/// readable text rather than tracked-out uppercase microtype.
 class MicroText extends StatelessWidget {
   const MicroText(
     this.text, {
@@ -131,7 +123,6 @@ class MicroText extends StatelessWidget {
   }
 }
 
-/// App wordmark plus a short status line and optional trailing note.
 class BrandHeader extends StatelessWidget {
   const BrandHeader({
     super.key,
@@ -182,7 +173,6 @@ class BrandHeader extends StatelessWidget {
   }
 }
 
-/// Simple white card with a subtle border and very light shadow.
 class CyberCard extends StatelessWidget {
   const CyberCard({
     super.key,
@@ -221,8 +211,6 @@ class CyberCard extends StatelessWidget {
   }
 }
 
-/// Standard filled button. [primary] selects the indigo filled style,
-/// otherwise a neutral outlined style is used.
 class NeonButton extends StatelessWidget {
   const NeonButton({
     super.key,
@@ -301,7 +289,6 @@ class NeonButton extends StatelessWidget {
   }
 }
 
-/// Simple section heading with an optional right-hand note.
 class SectionLabel extends StatelessWidget {
   const SectionLabel(this.text, {super.key, this.trailing});
 
@@ -329,7 +316,6 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
-/// Soft, rounded status pill.
 class StatusChip extends StatelessWidget {
   const StatusChip(this.label, {super.key, this.color});
 
@@ -351,7 +337,6 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-/// Small, functional bar chart. Kept for API compatibility.
 class Waveform extends StatelessWidget {
   const Waveform({
     super.key,
@@ -408,7 +393,6 @@ class _WavePainter extends CustomPainter {
   }
 }
 
-/// Kept for API compatibility; draws nothing.
 class ScanOverlay extends StatelessWidget {
   const ScanOverlay({super.key});
 

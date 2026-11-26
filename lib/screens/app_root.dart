@@ -1,4 +1,3 @@
-/// Root navigation: sign in -> setup -> dashboard, with a persisted session.
 library;
 
 import 'package:flutter/material.dart';

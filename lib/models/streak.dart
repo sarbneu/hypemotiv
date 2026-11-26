@@ -1,4 +1,3 @@
-/// Streak tracking model - tracks consecutive days of app usage.
 library;
 class Streak {
   final String userId;
@@ -41,7 +40,6 @@ class Streak {
     );
   }
 
-  /// Create a copy of this Streak with the given fields replaced.
   Streak copyWith({
     String? userId,
     int? currentStreak,

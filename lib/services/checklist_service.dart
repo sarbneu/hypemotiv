@@ -1,4 +1,3 @@
-/// Checklist service - manages the 5-task daily checklist.
 library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/task.dart';
@@ -12,13 +11,11 @@ class ChecklistService {
     _box = Hive.box<Task>(boxName);
   }
 
-  /// Seed the 5 default tasks for the day.
   Future<void> seedDailyChecklist() async {
     final currentDate = DateTime.now().formatYmd();
     final tasks = _getDefaultTasks();
     final todayBox = await _getOrCreateDailyBox(currentDate);
 
-    // Check if already seeded for today
     if (todayBox.isEmpty) {
       for (final task in tasks) {
         final withDate = task.copyWith(
@@ -56,7 +53,6 @@ class ChecklistService {
 
   int get completedCount => _box.values.where((t) => t.completed).length;
 
-  /// Reset all tasks (for new day).
   Future<void> resetAll() async {
     await _box.clear();
   }
@@ -71,13 +67,11 @@ class ChecklistService {
     ];
   }
 
-  /// Get or create a daily box for the given date.
   Future<Box<Task>> _getOrCreateDailyBox(String date) async {
     return Hive.openBox<Task>('_day_$date');
   }
 }
 
-/// Simple date formatting helper.
 extension DateFormatHelper on DateTime {
   String formatYmd() {
     return '$year${_twoDigits(month)}$_twoDigits(day)';
