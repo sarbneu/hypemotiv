@@ -294,6 +294,20 @@ class HypeApi {
     return parts.isEmpty ? 'unknown backend error' : parts.join(' | ');
   }
 
+  /// Whether the backend has a live toothbrush detector configured.
+  Future<bool> detectorConfigured() async {
+    try {
+      final http.Response response =
+          await http.get(Uri.parse('$base/detect/status')).timeout(_timeout);
+      if (response.statusCode != 200) return false;
+      final Object? decoded = jsonDecode(response.body);
+      return decoded is Map<String, dynamic> &&
+          decoded['configured'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Run the optional toothbrush detector on a proof photo.
   Future<Map<String, dynamic>?> detectToothbrush(File photo) async {
     try {

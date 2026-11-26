@@ -16,6 +16,7 @@ class _MathTaskPickerScreenState extends State<MathTaskPickerScreen> {
   final TextEditingController _question = TextEditingController();
   final TextEditingController _answer = TextEditingController();
   String _difficulty = 'Easy';
+  List<MathProblem> _samples = const <MathProblem>[];
   List<CustomMathQuestion> _custom = const <CustomMathQuestion>[];
   bool _loading = true;
 
@@ -34,6 +35,7 @@ class _MathTaskPickerScreenState extends State<MathTaskPickerScreen> {
       _custom = custom;
       _loading = false;
     });
+    await _preview();
   }
 
   Future<void> _add() async {
@@ -49,6 +51,15 @@ class _MathTaskPickerScreenState extends State<MathTaskPickerScreen> {
     _question.clear();
     _answer.clear();
     await _load();
+  }
+
+  Future<void> _preview() async {
+    final List<MathProblem> samples = <MathProblem>[];
+    for (int i = 0; i < 3; i++) {
+      samples.add(await _service.nextProblem());
+    }
+    if (!mounted) return;
+    setState(() => _samples = samples);
   }
 
   @override
@@ -86,7 +97,20 @@ class _MathTaskPickerScreenState extends State<MathTaskPickerScreen> {
                     final String value = selected.first;
                     setState(() => _difficulty = value);
                     await _service.setDifficulty(value);
+                    await _preview();
                   },
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.shuffle),
+                  label: const Text('Show 3 different questions'),
+                  onPressed: _preview,
+                ),
+                ..._samples.map(
+                  (MathProblem problem) => ListTile(
+                    title: Text(problem.question),
+                    subtitle: Text('Answer: ${problem.answer}'),
+                  ),
                 ),
                 const Divider(height: 32),
                 const Text(

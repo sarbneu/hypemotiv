@@ -99,3 +99,11 @@ Audio fix 2026-11-18: web playback now fetches MP3 bytes through `/api/sounds/pr
 - Removed per-press `stop()` and `setReleaseMode()` calls; release mode is only changed when loop state actually changes.
 - Web audio bytes are cached in memory (12 entries) so repeat previews do not re-fetch the same URL.
 - Bundled asset sounds still play directly with no network.
+
+
+## Sensor/detection status and per-attempt maths (2026-11-26)
+
+- Added Sensors and detection screen in More: checks accelerometer stream, camera count and Roboflow detector configuration.
+- Added GET /api/detect/status so the app can show whether live toothbrush detection is configured.
+- First-run setup now shows a visible Maths level button for every user.
+- Wrong maths answers load a new question; Maths picker previews three different questions and has a shuffle button.

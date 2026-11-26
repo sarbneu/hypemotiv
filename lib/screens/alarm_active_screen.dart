@@ -94,14 +94,24 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     );
   }
 
-  void _checkMath() {
+  Future<void> _refreshMath() async {
+    final MathProblem problem = await MathTaskService().nextProblem();
+    if (!mounted) return;
+    setState(() {
+      _mathProblem = problem;
+      _mathController.clear();
+    });
+  }
+
+  Future<void> _checkMath() async {
     final int? answer = int.tryParse(_mathController.text.trim());
     if (answer == _mathProblem.answer) {
       setState(() => _mathSolved = true);
       _toast('Maths task complete');
-    } else {
-      _toast('Wrong answer. Try again.');
+      return;
     }
+    _toast('Wrong answer. New question loaded.');
+    await _refreshMath();
   }
 
   Future<void> _disarmNow(String message) async {
@@ -347,24 +357,25 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
                           'Wake-up maths',
                           trailing: _mathSolved ? 'Done' : 'Required',
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            await Navigator.of(context).push<void>(
-                              MaterialPageRoute<void>(
-                                builder: (BuildContext context) =>
-                                    const MathTaskPickerScreen(),
-                              ),
-                            );
-                            final MathProblem problem =
-                                await MathTaskService().nextProblem();
-                            if (!mounted) return;
-                            setState(() {
-                              _mathProblem = problem;
-                              _mathSolved = false;
-                              _mathController.clear();
-                            });
-                          },
-                          child: const Text('Easy / custom questions'),
+                        Row(
+                          children: <Widget>[
+                            TextButton(
+                              onPressed: () async {
+                                await Navigator.of(context).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (BuildContext context) =>
+                                        const MathTaskPickerScreen(),
+                                  ),
+                                );
+                                await _refreshMath();
+                              },
+                              child: const Text('Maths level'),
+                            ),
+                            TextButton(
+                              onPressed: _refreshMath,
+                              child: const Text('New question'),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(

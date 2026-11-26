@@ -1255,6 +1255,14 @@ app.post('/api/extract-audio', (req, res) => {
   });
 });
 
+app.get('/api/detect/status', (req, res) => {
+  const configured = Boolean(
+    String(process.env.ROBOFLOW_API_KEY || '').trim() &&
+    String(process.env.ROBOFLOW_MODEL_ID || '').trim()
+  );
+  res.json({ configured });
+});
+
 app.post('/api/detect/toothbrush', (req, res) => {
   const apiKey = String(process.env.ROBOFLOW_API_KEY || '').trim();
   const modelId = String(process.env.ROBOFLOW_MODEL_ID || '').trim();

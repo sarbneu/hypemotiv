@@ -3,7 +3,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/screens/sound_picker_screen.dart';
+import 'package:hypemotiv/screens/math_task_picker_screen.dart';
 import 'package:hypemotiv/screens/task_picker_screen.dart';
+import 'package:hypemotiv/services/math_task_service.dart';
 import 'package:hypemotiv/services/task_selection_service.dart';
 import 'package:hypemotiv/utils/task_catalog.dart';
 import 'package:hypemotiv/services/audio_service.dart';
@@ -30,6 +32,7 @@ class _SetupScreenState extends State<SetupScreen> {
   int _disciplineIndex = 0;
   SoundOption _selectedSound = defaultSoundOptions.first;
   List<String> _selectedTasks = wakeTasks.map((WakeTask task) => task.id).toList();
+  String _mathDifficulty = 'Easy';
 
   static const List<String> _disciplines = <String>[
     'Military Wake Up',
@@ -90,6 +93,9 @@ class _SetupScreenState extends State<SetupScreen> {
     super.initState();
     TaskSelectionService().selected().then((List<String> ids) {
       if (mounted) setState(() => _selectedTasks = ids);
+    });
+    MathTaskService().difficulty().then((String level) {
+      if (mounted) setState(() => _mathDifficulty = level);
     });
   }
 
@@ -186,6 +192,24 @@ class _SetupScreenState extends State<SetupScreen> {
                       final List<String> ids =
                           await TaskSelectionService().selected();
                       if (mounted) setState(() => _selectedTasks = ids);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.calculate),
+                    label: Text(
+                      'Maths level: $_mathDifficulty (change questions)',
+                    ),
+                    onPressed: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (BuildContext context) =>
+                              const MathTaskPickerScreen(),
+                        ),
+                      );
+                      final String level =
+                          await MathTaskService().difficulty();
+                      if (mounted) setState(() => _mathDifficulty = level);
                     },
                   ),
                   const SizedBox(height: 18),
