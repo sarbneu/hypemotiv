@@ -1,11 +1,9 @@
-/// Text-to-Speech service for reading motivational quotes aloud.
 library;
 import 'package:flutter_tts/flutter_tts.dart';
 
 class TTSService {
   final FlutterTts _flutterTts = FlutterTts();
 
-  // Voice characters: just different speed and pitch for the same message.
   static const List<String> characters = <String>[
     'Calm',
     'Cheerful',
@@ -27,10 +25,9 @@ class TTSService {
     'Radio': 0.7,
   };
 
-  /// Initialize the TTS engine without ever blocking app startup.
   Future<void> init() async {
     await _safe(() => _flutterTts.setLanguage('en-US'));
-    await _safe(() => _flutterTts.setSpeechRate(0.5)); // Slower for quotes
+    await _safe(() => _flutterTts.setSpeechRate(0.5));
     await _safe(() => _flutterTts.setPitch(1.0));
   }
 
@@ -38,18 +35,15 @@ class TTSService {
     try {
       await action().timeout(const Duration(seconds: 2));
     } catch (_) {
-      // TTS is optional; the rest of the app must still start.
     }
   }
 
-  /// Speak a quote text aloud.
   Future<void> speak(String text, {double rate = 0.5, double pitch = 1.0}) async {
     await _safe(() => _flutterTts.setSpeechRate(rate));
     await _safe(() => _flutterTts.setPitch(pitch));
     await _safe(() => _flutterTts.speak(text));
   }
 
-  /// Speak with one of the preset voice characters.
   Future<void> speakWithCharacter(String text, String character) async {
     final String name = characters.contains(character) ? character : 'Calm';
     await speak(
@@ -59,7 +53,6 @@ class TTSService {
     );
   }
 
-  /// Voices installed on the device, when the engine exposes them.
   Future<List<String>> getVoices() async {
     try {
       final dynamic result = await _flutterTts.getVoices.timeout(
@@ -75,33 +68,26 @@ class TTSService {
     }
   }
 
-  /// Stop any current speech.
   Future<void> stop() async {
     await _flutterTts.stop();
   }
 
-  /// Get the current speaking status.
   Future<void> getStatus() async {
-    // Status check is optional - simplified to avoid API mismatch
     await _flutterTts.stop();
   }
 
-  /// Set the language.
   Future<void> setLanguage(String lang) async {
     await _flutterTts.setLanguage(lang);
   }
 
-  /// Set the speech rate (0.0 to 1.0).
   Future<void> setRate(double rate) async {
     await _flutterTts.setSpeechRate(rate);
   }
 
-  /// Set the pitch.
   Future<void> setPitch(double pitch) async {
     await _flutterTts.setPitch(pitch);
   }
 
-  /// Dispose of the TTS engine.
   Future<void> dispose() async {
     await _flutterTts.stop();
   }

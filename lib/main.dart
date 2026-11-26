@@ -1,4 +1,3 @@
-/// HypeMotiv - meme audio alarm, daily habit checklist and streak tracker.
 library;
 
 import 'package:flutter/material.dart';
@@ -13,16 +12,12 @@ import 'package:hypemotiv/widgets/cyber_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Boxes must be open before any service looks them up.
   await HiveInitializer.init();
 
-  // Real alarm / reminder notifications.
   await NotificationService().init();
 
-  // Persisted light/dark preference.
   await ThemeService().init();
 
-  // Non-Hive services are safe to initialise afterwards.
   await AudioService().init();
   await TTSService().init();
 

@@ -1,4 +1,3 @@
-/// Sign-in gate with a real on-device account (create / sign in / reset).
 library;
 
 import 'package:flutter/material.dart';

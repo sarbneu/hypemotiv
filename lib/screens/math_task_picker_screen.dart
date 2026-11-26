@@ -1,4 +1,3 @@
-/// Configure maths difficulty and add your own wake-up questions.
 library;
 
 import 'package:flutter/material.dart';

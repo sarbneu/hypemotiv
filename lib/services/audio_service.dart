@@ -1,4 +1,3 @@
-/// Audio playback for alarm sounds, ripped clips and voice messages.
 library;
 
 import 'package:audioplayers/audioplayers.dart';
@@ -11,7 +10,6 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal();
 
-  /// Bundled sound: no network, no CORS, no backend needed.
   static const String localTestSound = 'assets/audio/test_alarm.wav';
 
   Future<void> playLocalTest({bool loop = false}) async {
@@ -54,17 +52,13 @@ class AudioService {
       await _audioPlayer.setVolume(1.0);
       await _audioPlayer.setReleaseMode(ReleaseMode.release);
     } catch (_) {
-      // Some platforms do not support configuring the audio context.
     }
   }
 
-  /// Play a local file path or a remote URL.
   Future<void> play(String audioUrl, {bool loop = false}) async {
     final String source =
         audioUrl.trim().isEmpty ? fallbackSoundUrl : audioUrl.trim();
     try {
-      // On web, only http(s) can be fetched. Reject file://, blob:, data: and
-      // custom schemes before http.get produces a confusing "Invalid scheme".
       if (kIsWeb && HypeApi.isUnsupportedAudioScheme(source)) {
         throw StateError(
           'Unsupported audio scheme in "$source" '
@@ -73,15 +67,12 @@ class AudioService {
       }
       final String playable = HypeApi.playableUrl(source);
       await _applyLoop(loop);
-      // On web, audioplayers creates an HTMLAudioElement with
-      // crossOrigin=anonymous. Feeding bytes avoids that CORS path entirely.
       if (source.startsWith('assets/')) {
         await _audioPlayer.setSourceAsset(source);
       } else if (kIsWeb) {
         final Uint8List bytes = await _bytesFor(playable);
         await _audioPlayer.setSourceBytes(bytes);
       } else if (source.startsWith('/')) {
-        // Custom sounds saved by CustomSoundService on the device.
         await _audioPlayer.setSourceDeviceFile(source);
       } else {
         await _audioPlayer.setSourceUrl(playable);

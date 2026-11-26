@@ -1,7 +1,5 @@
-/// Oracle configuration constants.
 library;
 class OracleConfig {
-  // Database connection details
   static const String oracleUser = 'your_username';
   static const String oraclePassword = 'your_password';
   static const String oracleHost = 'localhost';
@@ -9,7 +7,6 @@ class OracleConfig {
   static const String oracleService = 'ORCL';
   static const String oracleConnectString = 'localhost:1521/ORCL';
 
-  // REST API endpoints for the mobile app to sync with Oracle.
   static const String apiBaseUrl = String.fromEnvironment(
     'HYPE_API_URL',
     defaultValue: 'http://localhost:3000/api',
@@ -19,19 +16,16 @@ class OracleConfig {
   static const String streaksEndpoint = '$apiBaseUrl/streaks';
   static const String quotesEndpoint = '$apiBaseUrl/quotes';
 
-  // Extended endpoints (scraping, Oracle BLOB files, video rip, Node email)
   static const String soundsEndpoint = '$apiBaseUrl/sounds';
   static const String filesEndpoint = '$apiBaseUrl/files';
   static const String ripEndpoint = '$apiBaseUrl/rip';
   static const String emailEndpoint = '$apiBaseUrl/email/send';
 
-  // App metadata
   static const String appName = 'HypeMotiv';
   static const String studentId = '2527665';
   static const String college = 'Patan College for Professional Studies';
   static const String affiliation = 'University of Bedfordshire';
 
-  // Suggested demo alarm schedules for the alarm screen
   static const List<Map<String, dynamic>> suggestedAlarms = [
     {
       'title': 'Morning Wake Up',

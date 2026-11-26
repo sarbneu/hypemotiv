@@ -1,4 +1,3 @@
-/// Choose which wake-up tasks the alarm will require.
 library;
 
 import 'package:flutter/material.dart';

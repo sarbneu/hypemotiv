@@ -1,4 +1,3 @@
-/// Screen 03 — sound library, audio extraction and recordings.
 library;
 
 import 'dart:async';
@@ -169,7 +168,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
     if (!mounted) return;
     setState(() => _recording = false);
 
-    // file_picker v12+ returns List<PlatformFile> and uses a static API.
     final List<PlatformFile> picked = await FilePicker.pickFiles(
       type: FileType.audio,
     );
@@ -214,7 +212,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 22),
 
-                  // Extract audio from a video file on the device
                   CyberCard(
                     glow: true,
                     child: Column(
@@ -296,7 +293,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Popular sounds
                   const SectionLabel(
                     'Popular sounds',
                     trailing: 'Browse',
@@ -431,7 +427,6 @@ class _SoundLabScreenState extends State<SoundLabScreen> {
                   ],
                   const SizedBox(height: 24),
 
-                  // Voice recordings
                   const SectionLabel(
                     'Voice recordings',
                     trailing: 'Ready',

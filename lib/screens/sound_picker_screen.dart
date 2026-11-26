@@ -1,4 +1,3 @@
-/// One place to browse and choose an alarm sound.
 library;
 
 import 'package:flutter/material.dart';

@@ -1,4 +1,3 @@
-/// Settings screen - configuration including Oracle connectivity.
 library;
 
 import 'package:flutter/material.dart';

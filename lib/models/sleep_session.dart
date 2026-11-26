@@ -1,12 +1,11 @@
-/// Sleep session model - tracks a single night's sleep.
 library;
 class SleepSession {
   final String id;
   final DateTime startDate;
   final DateTime endDate;
-  final Duration duration; // Total sleep duration
-  final int sleepStages;   // Rough breakdown (N1 + N2 + N3 + REM)
-  final bool restless;     // Did the user toss/roll a lot
+  final Duration duration;
+  final int sleepStages;
+  final bool restless;
   final String notes;
   final DateTime createdAt;
 

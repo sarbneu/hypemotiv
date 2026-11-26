@@ -1,4 +1,3 @@
-/// Simple local account for the student prototype.
 library;
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,8 +11,6 @@ class AuthService {
   static const String passKey = 'hypemotiv_account_pass';
   static const String sessionKey = 'hypemotiv_session';
 
-
-  /// Shared validation rules used by both sign-in and first-run setup.
   static String? validateUser(String raw) {
     final String user = raw.trim().toLowerCase();
     if (user.isEmpty) return 'Enter an email address or a handle';
@@ -53,7 +50,6 @@ class AuthService {
     await prefs.setString(sessionKey, user.trim().toLowerCase());
   }
 
-  /// Returns true when the handle and passcode match the local account.
   Future<bool> login(String user, String passcode) async {
     final prefs = await SharedPreferences.getInstance();
     final storedUser = prefs.getString(userKey);

@@ -1,4 +1,3 @@
-/// Real sleep tracking: start/stop a session, log a past night, review history.
 library;
 
 import 'package:flutter/material.dart';

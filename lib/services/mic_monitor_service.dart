@@ -1,4 +1,3 @@
-/// Microphone-based sleep environment monitor.
 library;
 
 import 'dart:io';
@@ -26,8 +25,6 @@ class MicMonitorService {
   factory MicMonitorService() => _instance;
   MicMonitorService._internal();
 
-  /// Record [seconds] of ambient audio and analyse loudness.
-  /// A disturbance is a half-second sample above [thresholdDb].
   Future<MicReading> sample({
     int seconds = 10,
     double thresholdDb = -35,
@@ -89,7 +86,6 @@ class MicMonitorService {
       final int disturbances =
           levels.where((level) => level > thresholdDb).length;
 
-      // Remove the temporary recording; only the measurements are kept.
       try {
         final File file = File(path);
         if (await file.exists()) await file.delete();

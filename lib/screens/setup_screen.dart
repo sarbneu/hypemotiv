@@ -1,4 +1,3 @@
-/// Screen 06 — first-run setup / morning routine enrolment.
 library;
 
 import 'package:flutter/material.dart';
@@ -135,7 +134,6 @@ class _SetupScreenState extends State<SetupScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Alarm sound preview
                   CyberCard(
                     glow: true,
                     child: Column(

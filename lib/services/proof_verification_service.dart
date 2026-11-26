@@ -1,4 +1,3 @@
-/// Camera-proof checks for the wake-up alarm.
 library;
 
 import 'dart:async';
@@ -35,14 +34,11 @@ class ProofResult {
 }
 
 class ProofVerificationService {
-  /// A photo taken more than two minutes ago is not a live proof.
   static const Duration maxPhotoAge = Duration(minutes: 2);
 
-  /// Two captures must be at least eight seconds apart and visually different.
   static const Duration minGap = Duration(seconds: 8);
   static const int minHashDistance = 12;
 
-  /// Minimum detector confidence accepted for the toothbrush target.
   static const double minToothbrushConfidence = 0.5;
 
   Future<ProofResult> verify(File photo, String target) async {
@@ -143,8 +139,6 @@ class ProofVerificationService {
         await HypeApi().detectToothbrush(photo);
 
     if (result != null && result['configured'] == false) {
-      // Server reachable, but no detector model installed: keep the
-      // deterministic pass and say why the object check was skipped.
       return ProofResult(
         ok: true,
         message: 'Fresh camera photo accepted for $target '
@@ -198,7 +192,6 @@ class ProofVerificationService {
     );
   }
 
-  /// True only when the second photo is a separate, visually different capture.
   bool isDistinctCapture(ProofSignature first, ProofSignature second) {
     final Duration gap = second.capturedAt.difference(first.capturedAt);
     if (gap < minGap) return false;

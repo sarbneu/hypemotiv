@@ -1,4 +1,3 @@
-/// Camera + ML Kit pose based jumping jack counter.
 library;
 
 import 'dart:async';
@@ -11,10 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 import 'package:hypemotiv/widgets/cyber_theme.dart';
 
-/// Result sent back to the caller when the camera cannot be used
 const int kPoseCameraUnavailable = -1;
 
-/// Angle of the upper arm measured from straight down, using the shoulder and
 double elbowArmAngle(PoseLandmark shoulder, PoseLandmark elbow) {
   final double dx = elbow.x - shoulder.x;
   final double dy = elbow.y - shoulder.y;
@@ -23,14 +20,12 @@ double elbowArmAngle(PoseLandmark shoulder, PoseLandmark elbow) {
   return math.acos((dy / length).clamp(-1.0, 1.0)) * 180 / math.pi;
 }
 
-/// 2D distance between two pose landmarks (z is noisy for this use case).
 double landmarkDistance(PoseLandmark a, PoseLandmark b) {
   final double dx = a.x - b.x;
   final double dy = a.y - b.y;
   return math.sqrt(dx * dx + dy * dy);
 }
 
-/// Small pure state machine used by [PoseExerciseScreen].
 class JumpingJackCounter {
   JumpingJackCounter({
     this.downAngle = 50,
@@ -51,8 +46,6 @@ class JumpingJackCounter {
   bool get isArmsDown => _sawDown && !_armsUp;
   bool get isLegsSpread => _legsSpread;
 
-  /// Feeds one frame of measurements. Returns true exactly when a rep was
-  /// counted on this frame.
   bool update({
     required double leftElbowAngle,
     required double rightElbowAngle,
@@ -99,7 +92,7 @@ class PoseExerciseScreen extends StatefulWidget {
 }
 
 class _PoseExerciseScreenState extends State<PoseExerciseScreen> {
-  static const int _frameIntervalMs = 100; // ~10 fps
+  static const int _frameIntervalMs = 100;
   static const int _androidNv21 = 17;
 
   final JumpingJackCounter _counter = JumpingJackCounter();
@@ -151,8 +144,6 @@ class _PoseExerciseScreenState extends State<PoseExerciseScreen> {
       if (!mounted) return;
       setState(() => _status = 'Stand back so your whole body is visible');
     } catch (_) {
-      // Permission denied or no camera: hand control back to the caller so it
-      // can open the existing accelerometer/manual exercise dialog.
       if (!mounted || _popped) return;
       _popped = true;
       Navigator.of(context).pop<int>(kPoseCameraUnavailable);
@@ -237,7 +228,6 @@ class _PoseExerciseScreenState extends State<PoseExerciseScreen> {
       });
       if (_counter.reps >= widget.targetReps) _finish();
     } catch (_) {
-      // A single bad frame must not kill the exercise.
     }
   }
 
@@ -269,7 +259,6 @@ class _PoseExerciseScreenState extends State<PoseExerciseScreen> {
       );
     }
 
-    // Android YUV_420_888 -> tightly packed YV12 (Y + V + U).
     final Uint8List y = _packedPlane(
       image.planes[0],
       image.width,
@@ -302,7 +291,6 @@ class _PoseExerciseScreenState extends State<PoseExerciseScreen> {
     );
   }
 
-  /// Removes row stride padding so ML Kit receives width-sized rows.
   static Uint8List _packedPlane(Plane plane, int width, int height) {
     final int stride = plane.bytesPerRow;
     if (stride == width && plane.bytes.length >= width * height) {

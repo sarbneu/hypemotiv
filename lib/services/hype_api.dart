@@ -1,4 +1,3 @@
-/// HypeMotiv extended API client.
 library;
 
 import 'dart:convert';
@@ -11,7 +10,6 @@ import '../utils/oracle_config.dart';
 import 'sound_service.dart';
 import '../utils/sound_catalog.dart';
 
-/// One bounding box from the optional toothbrush detector.
 class DetectionBox {
   const DetectionBox({
     required this.className,
@@ -24,7 +22,6 @@ class DetectionBox {
 
   factory DetectionBox.fromJson(Map<String, dynamic> json) {
     return DetectionBox(
-      // The backend key is `class` (a reserved word in Dart).
       className: (json['class'] ?? json['className'] ?? 'unknown').toString(),
       confidence: _asDouble(json['confidence']),
       x: _asDouble(json['x']),
@@ -34,7 +31,6 @@ class DetectionBox {
     );
   }
 
-  /// `class` from the wire payload, exposed under two convenient names.
   final String className;
   String get label => className;
 
@@ -56,7 +52,6 @@ double _asDouble(Object? value) {
 bool _hasValue(Object? value) =>
     value != null && value.toString().trim().isNotEmpty;
 
-/// Render nested backend error payloads (`{error: {message: ...}}`) readable.
 String _flatten(Object? value) {
   if (value == null) return '';
   if (value is Map) {
@@ -75,7 +70,6 @@ class HypeApi {
 
   static String get base => OracleConfig.apiBaseUrl;
 
-  /// On Flutter Web, audioplayers creates an HTMLAudioElement with
   static String playableUrl(String url) {
     if (!kIsWeb) return url;
     final Uri? uri = Uri.tryParse(url);
@@ -85,8 +79,6 @@ class HypeApi {
     return '$base/sounds/proxy?url=${Uri.encodeComponent(url)}';
   }
 
-  /// True for schemes that cannot be fetched on the web (`file://`, `blob:`,
-  /// `data:`, custom app protocols, ...). An empty scheme is a relative path.
   static bool isUnsupportedAudioScheme(String url) {
     final Uri? uri = Uri.tryParse(url);
     if (uri == null) return false;
@@ -94,8 +86,6 @@ class HypeApi {
     return scheme.isNotEmpty && scheme != 'http' && scheme != 'https';
   }
 
-  /// Minimal audio sniffer for the web fetch path: returns a readable format
-  /// name only when [bytes] begin with a known audio magic signature.
   static String? detectAudioFormat(List<int> bytes) {
     if (bytes.length >= 3 &&
         bytes[0] == 0x49 &&
@@ -117,7 +107,6 @@ class HypeApi {
     return null;
   }
 
-  /// True when a response body is an HTML/XML error page, not audio.
   static bool looksLikeHtml(List<int> bytes) {
     final String head = String.fromCharCodes(bytes.take(256)).toLowerCase();
     return head.contains('<!doctype') ||
@@ -131,7 +120,6 @@ class HypeApi {
 
   static const Duration _timeout = Duration(seconds: 20);
 
-  /// Connectivity check. Returns true only when the Node backend is reachable.
   Future<bool> isOnline() async {
     try {
       final response = await http
@@ -143,7 +131,6 @@ class HypeApi {
     }
   }
 
-  /// Return the small curated sound pack bundled with the app.
   Future<List<Sound>> fetchSounds({String query = '', int limit = 50}) async {
     final String q = query.trim().toLowerCase();
     return defaultSoundOptions
@@ -164,8 +151,6 @@ class HypeApi {
         .toList();
   }
 
-  /// Upload a local file (meme audio, proof photo, ripped audio) into Oracle
-  /// as a BLOB. Returns the public download URL, or null on failure.
   Future<String?> uploadFile(
     File file, {
     String userId = 'demo',
@@ -186,13 +171,10 @@ class HypeApi {
         return data['url'] as String?;
       }
     } catch (_) {
-      // offline
     }
     return null;
   }
 
-  /// Send a recorded video to `POST /api/extract-audio` (multipart `file`,
-  /// `kind=video`) and return the Oracle-hosted audio URL from `data['url']`.
   Future<String?> uploadVideoAndExtract(
     File video, {
     String userId = 'demo',
@@ -226,7 +208,6 @@ class HypeApi {
     return null;
   }
 
-  /// Paste a TikTok / Reels / YouTube / direct-media URL and get back an
   Future<String?> ripAudio(String url, {String userId = 'demo'}) async {
     final Map<String, dynamic>? data =
         await ripAudioDetailed(url, userId: userId);
@@ -240,7 +221,6 @@ class HypeApi {
     return null;
   }
 
-  /// Full backend response for a rip request, including any error details.
   Future<Map<String, dynamic>?> ripAudioDetailed(
     String url, {
     String userId = 'demo',
@@ -294,7 +274,6 @@ class HypeApi {
     return parts.isEmpty ? 'unknown backend error' : parts.join(' | ');
   }
 
-  /// Whether the backend has a live toothbrush detector configured.
   Future<bool> detectorConfigured() async {
     try {
       final http.Response response =
@@ -308,7 +287,6 @@ class HypeApi {
     }
   }
 
-  /// Run the optional toothbrush detector on a proof photo.
   Future<Map<String, dynamic>?> detectToothbrush(File photo) async {
     try {
       final http.MultipartRequest request = http.MultipartRequest(
@@ -364,8 +342,6 @@ class HypeApi {
     }
   }
 
-  /// Send an accountability email through the Node/nodemailer endpoint.
-  /// Returns true on success.
   Future<bool> sendEmail({
     required String to,
     required String subject,

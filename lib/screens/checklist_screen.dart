@@ -1,4 +1,3 @@
-/// Daily checklist screen - 5-task habit tracker.
 library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/models/task.dart';
@@ -60,7 +59,6 @@ class _ChecklistScreenState extends State<ChecklistScreen> {
 
     return Column(
       children: [
-        // Progress header
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),

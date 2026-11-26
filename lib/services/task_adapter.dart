@@ -1,4 +1,3 @@
-/// Hive type adapter for Task model.
 library;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:hypemotiv/models/task.dart';

@@ -1,4 +1,3 @@
-/// Screen 02 — morning alarm dashboard.
 library;
 
 import 'dart:io';

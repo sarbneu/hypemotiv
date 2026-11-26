@@ -1,9 +1,8 @@
-/// Daily checklist task model (5 tasks as per design).
 library;
 class Task {
   final String id;
   final String title;
-  final String emoji; // e.g. "🏃", "📚", "🍳", "💧", "🧹"
+  final String emoji;
   final bool completed;
   final DateTime? completedAt;
 
@@ -37,7 +36,6 @@ class Task {
     };
   }
 
-  /// Create a copy of this Task with the given fields replaced.
   Task copyWith({String? id, String? title, String? emoji, bool? completed, DateTime? completedAt}) {
     return Task(
       id: id ?? this.id,

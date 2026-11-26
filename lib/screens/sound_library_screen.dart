@@ -1,4 +1,3 @@
-/// Sound library screen - browse and manage custom sounds.
 library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
@@ -61,7 +60,6 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
 
     return Column(
       children: [
-        // Category filter
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(12),
@@ -120,7 +118,6 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
                     child: const Icon(Icons.play_arrow, color: Colors.white),
                   ),
                   onTap: () {
-                    // Play the sound
                     _playSound(sound.url);
                   },
                 ),
@@ -133,7 +130,6 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
   }
 
   Future<void> _playSound(String url) async {
-    // Import audio service to play sound
     final audioService = AudioService();
     try {
       await audioService.play(url);
@@ -143,4 +139,3 @@ class _SoundLibraryScreenState extends State<SoundLibraryScreen> {
   }
 }
 
-// Need to import audio service at the top

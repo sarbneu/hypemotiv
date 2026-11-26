@@ -1,4 +1,3 @@
-/// App-wide theme mode, persisted through shared_preferences.
 library;
 
 import 'package:flutter/material.dart';

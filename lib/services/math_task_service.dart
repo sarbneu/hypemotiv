@@ -1,4 +1,3 @@
-/// Difficulty and custom questions for the wake-up maths task.
 library;
 
 import 'dart:convert';

@@ -1,4 +1,3 @@
-/// Screen 05 — live alarm with photo check-in.
 library;
 
 import 'dart:async';
@@ -46,8 +45,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
 
   bool get _requireMaths => _requiredTasks.contains('maths');
   bool get _requirePhoto => _requiredTasks.contains('photo');
-
-
 
   @override
   void initState() {
@@ -178,7 +175,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
     await _disarmNow('Both photos accepted · Alarm stopped');
   }
 
-  /// Snooze only unlocks after real phone movement (20 repetitions).
   Future<void> _snoozeWithExercise() async {
     if (_requireMaths && !_mathSolved) {
       _toast('Solve the maths task first');
@@ -202,7 +198,6 @@ class _AlarmActiveScreenState extends State<AlarmActiveScreen> {
       );
       if (!mounted) return;
       if (counted == kPoseCameraUnavailable) {
-        // Camera unavailable: fall back to the existing manual dialog.
         final bool? manual = await _showExerciseDialog(label: label, reps: target);
         if (manual != true || !mounted) return;
         await _snooze(<String, Object>{'label': label, 'reps': target}, duration: const Duration(minutes: 5));
@@ -585,7 +580,6 @@ class _PriorityItem extends StatelessWidget {
     );
   }
 }
-
 
 class _ExerciseDialog extends StatefulWidget {
   const _ExerciseDialog({required this.label, required this.reps});

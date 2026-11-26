@@ -1,4 +1,3 @@
-/// More hub - reachable entry point for the secondary app features.
 library;
 
 import 'package:flutter/material.dart';

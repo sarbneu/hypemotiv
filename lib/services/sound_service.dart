@@ -1,4 +1,3 @@
-/// Sound service backed by the small pack bundled with the app.
 library;
 
 import '../utils/sound_catalog.dart';
@@ -97,7 +96,6 @@ class SoundService {
   void clearCache() => _cachedSounds.clear();
 }
 
-/// Sound manager (singleton)
 class SoundManager {
   static final SoundManager _instance = SoundManager._internal();
   factory SoundManager() => _instance;

@@ -1,4 +1,3 @@
-/// Alarm screen - basic alarm timer with meme audio.
 library;
 import 'package:flutter/material.dart';
 import 'package:hypemotiv/services/audio_service.dart';
@@ -45,7 +44,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
   }
 
   Future<void> _loadSounds() async {
-    // Warm the sound list; the active UI uses ArenaScreen for alarm sounds.
     await SoundManager().fetchSounds(category: 'Alarm', limit: 20);
     if (!mounted) return;
     setState(() => _isLoading = false);
@@ -55,14 +53,11 @@ class _AlarmScreenState extends State<AlarmScreen> {
     try {
       await _audioService.play(audioUrl);
     } catch (e) {
-      // Handle play error
       debugPrint('Failed to play sound: $e');
     }
   }
 
   Future<void> _uploadCustomSound() async {
-    // This would open a file picker to upload a custom sound
-    // For now, show a dialog to select a sound
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
